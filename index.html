@@ -1652,8 +1652,8 @@ function renderResultsHTML() {
     return header
       +'<div class="segment-label">6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an</div>'+rankTable(r.e6b,C_BASE)
       +'<div class="segment-label">9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an</div>'+rankTable(r.e9b,C_BASE)
-      +'<div class="segment-label">6 kVA Option HP/HC — conso moy. '+CONSOS.elec_6_hc+' kWh/an</div>'+rankTable(r.e6h,C_HC)
-      +'<div class="segment-label">9 kVA Option HP/HC — conso moy. '+CONSOS.elec_9_hc+' kWh/an</div>'+rankTable(r.e9h,C_HC);
+      +'<div class="segment-label">6 kVA Option HP/HC — conso moy. '+(CONSOS.elec_6_hc_hp+CONSOS.elec_6_hc_hc)+' kWh/an</div>'+rankTable(r.e6h,C_HC)
+      +'<div class="segment-label">9 kVA Option HP/HC — conso moy. '+(CONSOS.elec_9_hc_hp+CONSOS.elec_9_hc_hc)+' kWh/an</div>'+rankTable(r.e9h,C_HC);
   } else {
     var r=computeGasRankings();
     var C_GAS=['#','Fournisseur','Offre','Abo (€/mois)','Écart abo','Écart kWh','Écart annuel €'];
@@ -1687,80 +1687,114 @@ function exportGas(){
 function dl(csv,name){var b=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();showToast('✓ Export téléchargé','success');}
 
 // ── EXPORT PDF ──
-async function exportPDF(energy) {
-  var isElec=energy==='elec';
-  var monthLabel=currentMonthKey?getMonthLabel(currentMonthKey):new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  var rankings=isElec?computeElecRankings():computeGasRankings();
-  var prevKey=currentMonthKey?getPrevMonthKey(currentMonthKey):getPrevMonthKey(getMonthKey());
-  var prev=null;
-  if(prevKey&&history[prevKey]){
-    var savedSupp=suppliers,savedRef=REF[energy];
+function exportPDF(energy) {
+  var isElec = energy === 'elec';
+  var monthLabel = currentMonthKey ? getMonthLabel(currentMonthKey) : new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  var rankings = isElec ? computeElecRankings() : computeGasRankings();
+  var prevKey = currentMonthKey ? getPrevMonthKey(currentMonthKey) : getPrevMonthKey(getMonthKey());
+  var prev = null;
+  if(prevKey && history[prevKey]) {
+    var savedSupp=suppliers, savedRef=JSON.parse(JSON.stringify(REF));
     suppliers=history[prevKey].suppliers; REF[energy]=history[prevKey].REF[energy];
-    prev=isElec?computeElecRankings():computeGasRankings();
-    suppliers=savedSupp; REF[energy]=savedRef;
+    prev = isElec ? computeElecRankings() : computeGasRankings();
+    suppliers=savedSupp; REF[energy]=savedRef[energy];
   }
-  var title=isElec?'Benchmark Électricité':'Benchmark Gaz';
-  var prevLabel=prevKey?getMonthLabel(prevKey):null;
-  function buildRow(row,i,prevData,cols){
-    var isSelf=row.isSelf;
-    var rankLabel=isSelf?'★':'#'+(i+1);
-    var bgColor=isSelf?'#E6F2F1':'';
-    var nameW=isSelf?'font-weight:700':'';
-    var ecartColor=row.ecart>0?'#C0392B':(row.ecart<0?'#1A7A4A':'#888');
-    var rc='';
-    if(prevData&&!isSelf){var ci=i,pi=prevData.findIndex(function(r){return r.name===row.name;});if(pi>=0){var d2=pi-ci;if(d2>0)rc='<span style="color:#1A7A4A;font-size:10px">▲'+d2+'</span>';else if(d2<0)rc='<span style="color:#C0392B;font-size:10px">▼'+Math.abs(d2)+'</span>';}}
-    var vc='';
-    if(prevData&&!isSelf){var pr=prevData.find(function(r){return r.name===row.name;});if(pr){var de=row.ecart-pr.ecart;if(Math.abs(de)>=0.5)vc=de<0?'<span style="color:#1A7A4A;font-weight:600">▼'+Math.abs(de).toFixed(1)+'</span>':'<span style="color:#C0392B;font-weight:600">▲'+de.toFixed(1)+'</span>';else vc='<span style="color:#999">→</span>';}}
-    var cells='<td style="font-family:monospace;color:'+(isSelf?'#00514A':'#888')+';font-weight:600;">'+rankLabel+' '+rc+'</td>'
-      +'<td style="'+nameW+'">'+row.name+'</td>'
-      +'<td style="font-size:11px;color:#555;">'+(row.offer||'—')+'</td>'
-      +'<td style="text-align:right;font-family:monospace;">'+(row.cost?(row.cost/12).toFixed(2):'—')+'</td>'
-      +'<td style="text-align:right;font-family:monospace;">'+(row.ecart_abo!=null?(row.ecart_abo>0?'+':'')+row.ecart_abo.toFixed(2):'—')+'</td>'
-      +'<td style="text-align:right;font-family:monospace;color:'+ecartColor+';">'+(row.ecart!=null?(row.ecart>0?'+':'')+row.ecart.toFixed(2):'—')+'</td>'
-      +(prevData?'<td style="text-align:center;">'+vc+'</td>':'');
-    return '<tr style="background:'+bgColor+';">'+cells+'</tr>';
+  var title = isElec ? 'Benchmark Électricité' : 'Benchmark Gaz';
+  var prevLabel = prevKey ? getMonthLabel(prevKey) : null;
+
+  function ecartColor(v) { return v>0?'#C0392B':(v<0?'#1A7A4A':'#888'); }
+  function fmtSign(v,dec) {
+    if(v===null||v===undefined) return '—';
+    var s = v>0?'+':''; return s+(typeof dec==='number'?v.toFixed(dec):Math.round(v));
   }
-  function buildTable(data,prevData,label){
-    var headerRow='<tr style="border-bottom:2px solid #00514A;"><th>Rang</th><th>Fournisseur</th><th>Offre</th><th style="text-align:right">Abo €/mois</th><th style="text-align:right">Écart abo</th><th style="text-align:right">Écart annuel €</th>'+(prevData?'<th style="text-align:center">vs '+prevLabel+'</th>':'')+'</tr>';
-    var bodyRows=data.map(function(row,i){return buildRow(row,i,prevData,{});}).join('');
-    return '<div style="margin-bottom:24px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#555;margin-bottom:6px;">'+label+'</div>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead>'+headerRow+'</thead><tbody>'+bodyRows+'</tbody></table></div>';
+
+  function buildTable(data, prevData, label) {
+    var prevLabel2 = prevLabel||'';
+    var thead = '<tr style="background:#00514A;color:white;">'
+      +'<th style="padding:6px 8px;text-align:left;font-size:11px;">Rang</th>'
+      +'<th style="padding:6px 8px;text-align:left;font-size:11px;">Fournisseur</th>'
+      +'<th style="padding:6px 8px;text-align:left;font-size:11px;">Offre</th>'
+      +'<th style="padding:6px 8px;text-align:right;font-size:11px;">Abo €/mois</th>'
+      +'<th style="padding:6px 8px;text-align:right;font-size:11px;">Écart kWh</th>'
+      +'<th style="padding:6px 8px;text-align:right;font-size:11px;">Écart annuel</th>'
+      +(prevData?'<th style="padding:6px 8px;text-align:center;font-size:11px;">vs '+prevLabel2+'</th>':'')
+      +'</tr>';
+    var tbody = data.map(function(row, i) {
+      var isSelf = row.isSelf;
+      var bg = isSelf ? '#E6F2F1' : (i%2===0?'#fafafa':'#fff');
+      var rank = isSelf ? '★' : '#'+(data.filter(function(r){return !r.isSelf;}).indexOf(row)+1);
+      var nameStyle = isSelf ? 'font-weight:700;color:#00514A;' : '';
+      var ecart = row.ecart;
+      var ecartStr = isSelf ? (row.annuel?Math.round(row.annuel)+' €':'—') : fmtSign(ecart);
+      var ecartCol = isSelf ? '#00514A' : ecartColor(ecart||0);
+      var aboStr = isSelf ? (row.abo?row.abo.toFixed(2):'—') : fmtSign(row.ecart_abo,2);
+      var kwhStr = isSelf
+        ? (row.kwh?row.kwh.toFixed(4):(row.hp?row.hp.toFixed(4)+'/'+row.hc.toFixed(4):'—'))
+        : fmtSign(row.ecart_kwh!==undefined?row.ecart_kwh:(row.ecart_hp!==undefined?row.ecart_hp:null),4);
+      var vsStr = '';
+      if(prevData&&!isSelf) {
+        var pr = prevData.find(function(r){return r.name===row.name;});
+        if(pr) { var de=ecart-(pr.ecart||0); vsStr=Math.abs(de)<0.5?'→':(de<0?'▼'+Math.abs(de).toFixed(0)+'€':'▲'+Math.abs(de).toFixed(0)+'€'); }
+      }
+      return '<tr style="background:'+bg+';border-bottom:1px solid #eee;">'
+        +'<td style="padding:5px 8px;font-family:monospace;font-size:11px;color:'+(isSelf?'#E08030':'#888')+';">'+rank+'</td>'
+        +'<td style="padding:5px 8px;font-size:12px;'+nameStyle+'">'+row.name+'</td>'
+        +'<td style="padding:5px 8px;font-size:11px;color:#555;">'+( row.offer||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;font-family:monospace;font-size:11px;">'+aboStr+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;font-family:monospace;font-size:11px;">'+kwhStr+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;font-family:monospace;font-size:12px;font-weight:600;color:'+ecartCol+';">'+ecartStr+'</td>'
+        +(prevData?'<td style="padding:5px 8px;text-align:center;font-size:11px;">'+vsStr+'</td>':'')
+        +'</tr>';
+    }).join('');
+    return '<div style="margin-bottom:28px;">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:6px;padding-left:2px;">'+label+'</div>'
+      +'<table style="width:100%;border-collapse:collapse;"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table>'
+      +'</div>';
   }
-  var tables='';
-  if(isElec){
-    tables+=buildTable(rankings.e6b,prev&&prev.e6b,'⚡ 6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an');
-    tables+=buildTable(rankings.e9b,prev&&prev.e9b,'⚡ 9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an');
-    tables+=buildTable(rankings.e6h,prev&&prev.e6h,'⚡ 6 kVA Option HP/HC — conso moy. '+CONSOS.elec_6_hc+' kWh/an');
-    tables+=buildTable(rankings.e9h,prev&&prev.e9h,'⚡ 9 kVA Option HP/HC — conso moy. '+CONSOS.elec_9_hc+' kWh/an');
+
+  var tables = '';
+  if(isElec) {
+    var r = rankings;
+    tables += buildTable(r.e6b, prev&&prev.e6b, '⚡ 6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an');
+    tables += buildTable(r.e9b, prev&&prev.e9b, '⚡ 9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an');
+    tables += buildTable(r.e6h, prev&&prev.e6h, '⚡ 6 kVA Option HP/HC — conso moy. '+(CONSOS.elec_6_hc_hp+CONSOS.elec_6_hc_hc)+' kWh/an');
+    tables += buildTable(r.e9h, prev&&prev.e9h, '⚡ 9 kVA Option HP/HC — conso moy. '+(CONSOS.elec_9_hc_hp+CONSOS.elec_9_hc_hc)+' kWh/an');
   } else {
-    tables+=buildTable(rankings.b0,prev&&prev.b0,'🔥 B0 — Cuisine & Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an');
-    tables+=buildTable(rankings.b1,prev&&prev.b1,'🔥 B1 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an');
+    var r = rankings;
+    tables += buildTable(r.b0, prev&&prev.b0, '🔥 B0 — Cuisine & Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an');
+    tables += buildTable(r.b1, prev&&prev.b1, '🔥 B1 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an');
   }
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;margin:0;padding:24px;color:#1A1916}table{width:100%}td,th{padding:5px 6px;border-bottom:1px solid #eee}@media print{@page{margin:1.5cm}}</style></head><body>'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
-    +'<div><div style="font-size:20px;font-weight:700;color:#00514A;">'+title+'</div>'
-    +'<div style="font-size:13px;color:#555;margin-top:2px;">'+monthLabel+(prevLabel?' · vs '+prevLabel:'')+'</div></div>'
-    +'<div style="font-size:11px;color:#999;text-align:right;">Alterna Energie France<br>Généré le '+new Date().toLocaleDateString('fr-FR')+'</div></div>'
-    +'<hr style="border:none;border-top:2px solid #00514A;margin:12px 0 20px;">'
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+' — '+monthLabel+'</title>'
+    +'<style>body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#1A1916;font-size:13px;}'
+    +'@media print{body{padding:0}@page{margin:1.5cm;size:A4 landscape}}</style>'
+    +'</head><body>'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">'
+    +'<div>'
+    +'<div style="font-size:22px;font-weight:700;color:#00514A;">'+title+'</div>'
+    +'<div style="font-size:13px;color:#555;margin-top:3px;">'+monthLabel+(prevLabel?' · comparé à '+prevLabel:'')+'</div>'
+    +'</div>'
+    +'<div style="text-align:right;font-size:11px;color:#999;">Alterna Energie France<br>Généré le '+new Date().toLocaleDateString('fr-FR')+'</div>'
+    +'</div>'
+    +'<hr style="border:none;border-top:3px solid #00514A;margin-bottom:20px;">'
     +tables
-    +'<div style="margin-top:24px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;">Négatif = moins cher qu’Alterna Energie France · ★ = référence</div>'
-    +'</body></html>';
-  // Create a Blob and open it - more reliable than document.write
+    +'<div style="margin-top:16px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;">'
+    +'★ = Alterna Energie France (référence) · valeurs absolues pour Alterna, écarts vs Alterna pour les concurrents · négatif = moins cher'
+    +'</div></body></html>';
+
+  // Direct download — no popup, works in all browsers
   var blob = new Blob([html], {type:'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
-  var win = window.open(url, '_blank');
-  if(!win) {
-    // Popup blocked - download instead
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'benchmark_'+(isElec?'elec':'gaz')+'_'+monthLabel.replace(/ /g,'_')+'.html';
-    a.click();
-    showToast('✓ Fichier HTML téléchargé - ouvrez-le et imprimez', 'success');
-  } else {
-    win.focus();
-    setTimeout(function(){ try{ win.print(); } catch(e){ showToast('Ouvrez la page et imprimez avec Ctrl+P','success'); } }, 800);
-  }
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'benchmark_'+(isElec?'elec':'gaz')+'_'+monthLabel.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'')+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  showToast('✓ Téléchargé — ouvre le fichier et fais Ctrl+P pour imprimer', 'success');
 }
+
 
 // ── PASTE TEXT HANDLER ──
 function togglePasteArea() {
