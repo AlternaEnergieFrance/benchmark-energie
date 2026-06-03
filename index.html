@@ -49,7 +49,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .ref-name.gas{color:var(--orange)}
 .ref-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .ref-field label{display:block;font-size:10px;color:var(--text3);margin-bottom:3px}
-.ref-field input{width:100%;padding:5px 7px;border:1px solid #B8D8D6;border-radius:5px;font-family:var(--mono);font-size:12px;background:white;color:var(--text);outline:none}
+.ref-field input{width:100%;padding:5px 7px;border:1px solid #B8D8D6;border-radius:5px;font-family:var(--mono);font-size:12px;background:white;color:var(--text);outline:none;-moz-appearance:textfield;}
+.ref-field input::-webkit-outer-spin-button,.ref-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .ref-field.gas input{border-color:#F0C090}
 .ref-field input:focus{border-color:var(--accent)}
 .ref-field.full{grid-column:1/-1}
@@ -389,22 +390,7 @@ function init() {
     now.toLocaleDateString('fr-FR',{month:'short',year:'numeric'});
   renderSidebar();
   renderContent();
-  // Format number inputs: abo=2 decimals, kWh=4 decimals
-  document.addEventListener('blur', function(e) {
-    if (e.target && e.target.type === 'number' && e.target.value) {
-      var id = e.target.id || '';
-      var v = parseFloat(e.target.value);
-      if (isNaN(v)) return;
-      if (id.startsWith('abo_') || id.startsWith('df_ab') || id.startsWith('da_ab')) {
-        e.target.value = v.toFixed(2);
-      } else if (id.startsWith('kwh_') || id.startsWith('hp_') || id.startsWith('hc_') ||
-                 id.startsWith('df_kw') || id.startsWith('da_kw') || id.startsWith('do_kw') ||
-                 id.startsWith('df_hp') || id.startsWith('df_hc') || id.startsWith('da_hp') ||
-                 id.startsWith('da_hc') || id.startsWith('do_hp') || id.startsWith('do_hc')) {
-        e.target.value = v.toFixed(4);
-      }
-    }
-  }, true);
+
 }
 
 function switchEnergy(e, btn) {
@@ -414,25 +400,35 @@ function switchEnergy(e, btn) {
   btn.classList.add('active');
   renderSidebar();
   renderContent();
-  // Format number inputs: abo=2 decimals, kWh=4 decimals
-  document.addEventListener('blur', function(e) {
-    if (e.target && e.target.type === 'number' && e.target.value) {
-      var id = e.target.id || '';
-      var v = parseFloat(e.target.value);
-      if (isNaN(v)) return;
-      if (id.startsWith('abo_') || id.startsWith('df_ab') || id.startsWith('da_ab')) {
-        e.target.value = v.toFixed(2);
-      } else if (id.startsWith('kwh_') || id.startsWith('hp_') || id.startsWith('hc_') ||
-                 id.startsWith('df_kw') || id.startsWith('da_kw') || id.startsWith('do_kw') ||
-                 id.startsWith('df_hp') || id.startsWith('df_hc') || id.startsWith('da_hp') ||
-                 id.startsWith('da_hc') || id.startsWith('do_hp') || id.startsWith('do_hc')) {
-        e.target.value = v.toFixed(4);
-      }
-    }
-  }, true);
+
 }
 
 // ── SIDEBAR ──
+
+// ── Explicitly set REF input values after sidebar renders ────────
+function postRenderRef() {
+  function sv(id, val) {
+    var el = document.getElementById(id);
+    console.log('postRenderRef', id, '=', val, 'type:', typeof val, 'el:', el ? 'found' : 'NOT FOUND');
+    if (el && val !== undefined && val !== null) {
+      el.value = val;
+      console.log('  → set to:', el.value);
+    }
+  }
+  if (currentEnergy === 'elec') {
+    sv('r_abo_6b', REF.elec.abo_6_base);
+    sv('r_k6b',    REF.elec.kwh_6_base);
+    sv('r_abo_9b', REF.elec.abo_9_base);
+    sv('r_k9b',    REF.elec.kwh_9_base);
+    sv('r_abo_6h', REF.elec.abo_6_hc);
+    sv('r_hp6',    REF.elec.hp_6);
+    sv('r_hc6',    REF.elec.hc_6);
+    sv('r_abo_9h', REF.elec.abo_9_hc);
+    sv('r_hp9',    REF.elec.hp_9);
+    sv('r_hc9',    REF.elec.hc_9);
+  }
+}
+
 function renderSidebar() {
   const el = document.getElementById('sidebar');
   const isElec = currentEnergy === 'elec';
@@ -463,18 +459,18 @@ function renderSidebar() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Abonnement (€/mois)</div>
           <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Prix kWh (€/kWh)</div>
-          <div class="ref-field"><label>Abo 6kVA Base</label><input type="number" id="r_abo_6b" value="${REF.elec.abo_6_base.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_6_base=parseFloat(this.value)||REF.elec.abo_6_base;renderResults()"></div>
-          <div class="ref-field"><label>kWh 6kVA Base</label><input type="number" id="r_k6b" value="${REF.elec.kwh_6_base.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.kwh_6_base=parseFloat(this.value)||REF.elec.kwh_6_base;renderResults()"></div>
-          <div class="ref-field"><label>Abo 9kVA Base</label><input type="number" id="r_abo_9b" value="${REF.elec.abo_9_base.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_9_base=parseFloat(this.value)||REF.elec.abo_9_base;renderResults()"></div>
-          <div class="ref-field"><label>kWh 9kVA Base</label><input type="number" id="r_k9b" value="${REF.elec.kwh_9_base.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.kwh_9_base=parseFloat(this.value)||REF.elec.kwh_9_base;renderResults()"></div>
-          <div class="ref-field"><label>Abo 6kVA HC</label><input type="number" id="r_abo_6h" value="${REF.elec.abo_6_hc.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_6_hc=parseFloat(this.value)||REF.elec.abo_6_hc;renderResults()"></div>
-          <div class="ref-field"><label>HP 6kVA</label><input type="number" id="r_hp6" value="${REF.elec.hp_6.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hp_6=parseFloat(this.value)||REF.elec.hp_6;renderResults()"></div>
-          <div class="ref-field"><label>Abo 9kVA HC</label><input type="number" id="r_abo_9h" value="${REF.elec.abo_9_hc.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_9_hc=parseFloat(this.value)||REF.elec.abo_9_hc;renderResults()"></div>
-          <div class="ref-field"><label>HC 6kVA</label><input type="number" id="r_hc6" value="${REF.elec.hc_6.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hc_6=parseFloat(this.value)||REF.elec.hc_6;renderResults()"></div>
+          <div class="ref-field"><label>Abo 6kVA Base</label><input type="text" id="r_abo_6b" value="${REF.elec.abo_6_base}" oninput="REF.elec.abo_6_base=parseFloat(this.value)||REF.elec.abo_6_base;renderResults()"></div>
+          <div class="ref-field"><label>kWh 6kVA Base</label><input type="text" id="r_k6b" value="${REF.elec.kwh_6_base}" oninput="REF.elec.kwh_6_base=parseFloat(this.value)||REF.elec.kwh_6_base;renderResults()"></div>
+          <div class="ref-field"><label>Abo 9kVA Base</label><input type="text" id="r_abo_9b" value="${REF.elec.abo_9_base}" oninput="REF.elec.abo_9_base=parseFloat(this.value)||REF.elec.abo_9_base;renderResults()"></div>
+          <div class="ref-field"><label>kWh 9kVA Base</label><input type="text" id="r_k9b" value="${REF.elec.kwh_9_base}" oninput="REF.elec.kwh_9_base=parseFloat(this.value)||REF.elec.kwh_9_base;renderResults()"></div>
+          <div class="ref-field"><label>Abo 6kVA HC</label><input type="text" id="r_abo_6h" value="${REF.elec.abo_6_hc}" oninput="REF.elec.abo_6_hc=parseFloat(this.value)||REF.elec.abo_6_hc;renderResults()"></div>
+          <div class="ref-field"><label>HP 6kVA</label><input type="text" id="r_hp6" value="${REF.elec.hp_6}" oninput="REF.elec.hp_6=parseFloat(this.value)||REF.elec.hp_6;renderResults()"></div>
+          <div class="ref-field"><label>Abo 9kVA HC</label><input type="text" id="r_abo_9h" value="${REF.elec.abo_9_hc}" oninput="REF.elec.abo_9_hc=parseFloat(this.value)||REF.elec.abo_9_hc;renderResults()"></div>
+          <div class="ref-field"><label>HC 6kVA</label><input type="text" id="r_hc6" value="${REF.elec.hc_6}" oninput="REF.elec.hc_6=parseFloat(this.value)||REF.elec.hc_6;renderResults()"></div>
           <div class="ref-field" style="grid-column:1"></div>
-          <div class="ref-field"><label>HP 9kVA</label><input type="number" id="r_hp9" value="${REF.elec.hp_9.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hp_9=parseFloat(this.value)||REF.elec.hp_9;renderResults()"></div>
+          <div class="ref-field"><label>HP 9kVA</label><input type="text" id="r_hp9" value="${REF.elec.hp_9}" oninput="REF.elec.hp_9=parseFloat(this.value)||REF.elec.hp_9;renderResults()"></div>
           <div class="ref-field" style="grid-column:1"></div>
-          <div class="ref-field"><label>HC 9kVA</label><input type="number" id="r_hc9" value="${REF.elec.hc_9.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hc_9=parseFloat(this.value)||REF.elec.hc_9;renderResults()"></div>
+          <div class="ref-field"><label>HC 9kVA</label><input type="text" id="r_hc9" value="${REF.elec.hc_9}" oninput="REF.elec.hc_9=parseFloat(this.value)||REF.elec.hc_9;renderResults()"></div>
         </div>
       </div>
     </div>`;
@@ -543,6 +539,7 @@ function renderSidebar() {
       </div>
       <button class="btn-add" onclick="addSupplier()">+ Ajouter</button>
     </div>`;
+  postRenderRef();
 }
 
 function selectSupplier(i) {
@@ -550,22 +547,7 @@ function selectSupplier(i) {
   currentTab = 'entry';
   renderSidebar();
   renderContent();
-  // Format number inputs: abo=2 decimals, kWh=4 decimals
-  document.addEventListener('blur', function(e) {
-    if (e.target && e.target.type === 'number' && e.target.value) {
-      var id = e.target.id || '';
-      var v = parseFloat(e.target.value);
-      if (isNaN(v)) return;
-      if (id.startsWith('abo_') || id.startsWith('df_ab') || id.startsWith('da_ab')) {
-        e.target.value = v.toFixed(2);
-      } else if (id.startsWith('kwh_') || id.startsWith('hp_') || id.startsWith('hc_') ||
-                 id.startsWith('df_kw') || id.startsWith('da_kw') || id.startsWith('do_kw') ||
-                 id.startsWith('df_hp') || id.startsWith('df_hc') || id.startsWith('da_hp') ||
-                 id.startsWith('da_hc') || id.startsWith('do_hp') || id.startsWith('do_hc')) {
-        e.target.value = v.toFixed(4);
-      }
-    }
-  }, true);
+
 }
 
 function addSupplier() {
@@ -577,9 +559,30 @@ function addSupplier() {
 }
 
 // ── CONTENT ──
+function buildMonthBar() {
+  var keys = Object.keys(history).sort();
+  if (!keys.length) return '';
+  var btns = keys.map(function(k) {
+    var active = k === currentMonthKey;
+    var border = active ? 'var(--accent)' : 'var(--border)';
+    var bg = active ? 'var(--accent)' : 'transparent';
+    var col = active ? 'white' : 'var(--text2)';
+    return '<button onclick="loadMonth(' + JSON.stringify(k) + ')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>';
+  }).join('');
+  return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">'
+    + '<span style="font-size:11px;color:var(--text3);margin-right:4px;">Historique :</span>'
+    + btns
+    + '<button onclick="loadMonth(null)" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;">En cours</button>'
+    + '</div>';
+}
+
 function renderResults() {
-  var el = document.getElementById('tabResults');
-  if (el) el.innerHTML = renderResultsHTML();
+  if (currentTab === 'results') {
+    try {
+      var el = document.getElementById('tabResults');
+      if (el) el.innerHTML = renderResultsHTML();
+    } catch(e) { console.error('renderResults error:', e); }
+  }
 }
 
 function renderContent() {
@@ -589,16 +592,34 @@ function renderContent() {
       <button class="tab ${currentTab==='entry'?'active':''}" onclick="showTab('entry',this)">Saisie</button>
       <button class="tab ${currentTab==='results'?'active':''}" onclick="showTab('results',this)">Classement</button>
     </div>
-    <div id="tabEntry">${currentTab==='entry'?renderEntry():''}</div>
-    <div id="tabResults">${currentTab==='results'?renderResultsHTML():''}</div>`;
+    <div id="tabEntry" style="display:${currentTab==='entry'?'block':'none'};">${currentTab==='entry'?renderEntry():''}</div>
+    <div id="tabResults" style="display:${currentTab==='results'?'block':'none'};"></div>`;
+  if (currentTab==='results') {
+    try {
+      var el2 = document.getElementById('tabResults');
+      if (el2) el2.innerHTML = renderResultsHTML();
+    } catch(e) { console.error('renderResultsHTML error:', e); }
+  }
+  postRenderRef();
 }
 
 function showTab(tab, btn) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tabEntry').innerHTML = tab==='entry'?renderEntry():'';
-  document.getElementById('tabResults').innerHTML = tab==='results'?renderResultsHTML():'';
+  var entryEl = document.getElementById('tabEntry');
+  var resultsEl = document.getElementById('tabResults');
+  if (entryEl) {
+    entryEl.style.display = tab==='entry' ? 'block' : 'none';
+    if (tab==='entry') entryEl.innerHTML = renderEntry();
+  }
+  if (resultsEl) {
+    resultsEl.style.display = tab==='results' ? 'block' : 'none';
+    if (tab==='results') {
+      try { resultsEl.innerHTML = renderResultsHTML(); } catch(e) { console.error(e); }
+    }
+  }
+  postRenderRef();
 }
 
 // ── ENTRY FORM ──
@@ -694,15 +715,15 @@ function renderElecFields(d, decomposed) {
     const baseGrid = pRows.map(k=>`
       <div class="power-row" style="grid-template-columns:60px 1fr 1fr;" id="rb_${k}">
         <div class="power-label">${k} kVA</div>
-        <div class="field"><label>Abo (€/mois)</label><input type="number" id="abo_${k}_base" value="${d['abo_'+k+'_base']||''}" step="any" oninput="mrkE('rb_${k}')"></div>
-        <div class="field"><label>kWh (€/kWh)</label><input type="number" id="kwh_${k}_base" value="${d['kwh_'+k+'_base']||''}" step="any" oninput="mrkE('rb_${k}')"></div>
+        <div class="field"><label>Abo (€/mois)</label><input type="number" id="abo_${k}_base" value="${d['abo_'+k+'_base']!==undefined&&d['abo_'+k+'_base']!==null?parseFloat(d['abo_'+k+'_base']).toFixed(2):''}" step="any" oninput="mrkE('rb_${k}')"></div>
+        <div class="field"><label>kWh (€/kWh)</label><input type="number" id="kwh_${k}_base" value="${d['kwh_'+k+'_base']!==undefined&&d['kwh_'+k+'_base']!==null?parseFloat(d['kwh_'+k+'_base']).toFixed(4):''}" step="any" oninput="mrkE('rb_${k}')"></div>
       </div>`).join('');
     const hcGrid = hcRows.map(k=>`
       <div class="power-row" style="grid-template-columns:60px 1fr 1fr 1fr;" id="rh_${k}">
         <div class="power-label">${k} kVA</div>
-        <div class="field"><label>Abo (€/mois)</label><input type="number" id="abo_${k}_hc" value="${d['abo_'+k+'_hc']||''}" step="any" oninput="mrkE('rh_${k}')"></div>
-        <div class="field"><label>HP (€/kWh)</label><input type="number" id="hp_${k}" value="${d['hp_'+k]||''}" step="any" oninput="mrkE('rh_${k}')"></div>
-        <div class="field"><label>HC (€/kWh)</label><input type="number" id="hc_${k}" value="${d['hc_'+k]||''}" step="any" oninput="mrkE('rh_${k}')"></div>
+        <div class="field"><label>Abo (€/mois)</label><input type="number" id="abo_${k}_hc" value="${d['abo_'+k+'_hc']!==undefined&&d['abo_'+k+'_hc']!==null?parseFloat(d['abo_'+k+'_hc']).toFixed(2):''}" step="any" oninput="mrkE('rh_${k}')"></div>
+        <div class="field"><label>HP (€/kWh)</label><input type="number" id="hp_${k}" value="${d['hp_'+k]!==undefined&&d['hp_'+k]!==null?parseFloat(d['hp_'+k]).toFixed(4):''}" step="any" oninput="mrkE('rh_${k}')"></div>
+        <div class="field"><label>HC (€/kWh)</label><input type="number" id="hc_${k}" value="${d['hc_'+k]!==undefined&&d['hc_'+k]!==null?parseFloat(d['hc_'+k]).toFixed(4):''}" step="any" oninput="mrkE('rh_${k}')"></div>
       </div>`).join('');
     return `
       <div class="form-section"><div class="form-section-title">Option Base — TTC</div>${baseGrid}</div>
@@ -971,11 +992,42 @@ async function handlePDF(event) {
 async function extractPDFText(file) {
   const ab = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data:ab}).promise;
-  let txt='';
-  for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const c=await p.getTextContent();txt+=c.items.map(x=>x.str).join(' ')+'\n';}
+  let txt = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    // Group items by Y position (same line = same Y within 2px)
+    const lines = {};
+    content.items.forEach(function(item) {
+      const y = Math.round(item.transform[5]);
+      if (!lines[y]) lines[y] = [];
+      lines[y].push({x: item.transform[4], str: item.str});
+    });
+    // Sort lines by Y descending (top to bottom), items by X
+    const ys = Object.keys(lines).map(Number).sort((a,b) => b - a);
+    ys.forEach(function(y) {
+      const items = lines[y].sort((a,b) => a.x - b.x);
+      // Join items: no space if adjacent item continues a number
+      let line = '';
+      items.forEach(function(item, idx) {
+        if (idx === 0) { line += item.str; return; }
+        const prev = items[idx-1].str;
+        const cur = item.str;
+        // No space if: prev ends with digit and cur starts with comma/period/digit
+        // OR prev ends with comma/period and cur starts with digit
+        const noSpace = (/\d$/.test(prev) && /^[,.\d]/.test(cur)) ||
+                        (/[,.]$/.test(prev) && /^\d/.test(cur));
+        line += (noSpace ? '' : ' ') + cur;
+      });
+      txt += line + '\n';
+    });
+  }
   return txt;
 }
 function parseElecTariffs(rawText) {
+  // Log raw text for debugging
+  var sample = rawText.substring(0, 300);
+  console.log('parseElecTariffs raw text (first 300 chars):', JSON.stringify(sample));
   var rawNorm = rawText.replace(/,/g,'.');
   // Split merged numbers (Alpiq: "0.143359 0.124256")
   var rawSplit = rawNorm.replace(/([\d]+\.[\d]+)(0\.[\d]+)/g,'$1 $2');
@@ -1291,8 +1343,9 @@ function parseElecTariffs(rawText) {
   // ── Final: cts→€, round ──────────────────────────────────────────────────
   Object.keys(d).forEach(function(k){
     if(d[k]&&(k.startsWith('kwh_')||k.startsWith('hp_')||k.startsWith('hc_'))&&d[k]>1) d[k]=d[k]/100;
-    if(d[k]) d[k]=Math.round(d[k]*10000)/10000;
+    if(d[k]) d[k]=+d[k].toPrecision(6);
   });
+  console.log('parseElecTariffs result:', JSON.stringify({abo_6_base:d.abo_6_base, abo_9_base:d.abo_9_base, kwh_6_base:d.kwh_6_base}));
   return d;
 }
 
@@ -1365,11 +1418,11 @@ function sKeydown(e,i) {
   if(e.key==='Escape'){editingSupplier=null;renderSidebar();}
 }
 function deleteSupplier(i) {
-  if(!confirm('Supprimer "'+suppliers[i].name+'" ?')) return;
-  suppliers.splice(i,1);
-  if(currentSupplier>=suppliers.length) currentSupplier=suppliers.length-1;
-  if(currentSupplier<0) currentSupplier=null;
-  renderSidebar(); renderContent();
+  suppliers.splice(i, 1);
+  if (currentSupplier !== null && currentSupplier >= suppliers.length) currentSupplier = suppliers.length - 1;
+  if (suppliers.length === 0 || currentSupplier < 0) currentSupplier = null;
+  renderSidebar();
+  renderResults();
 }
 
 // ── REF PDF ──
@@ -1387,6 +1440,7 @@ async function calcRefPDF(energy) {
     var count=Object.keys(extracted).length;
     if(energy==='elec'){
       if(extracted.abo_6_base) REF.elec.abo_6_base=extracted.abo_6_base;
+      console.log('PDF extracted abo_6_base:', extracted.abo_6_base, 'set to:', REF.elec.abo_6_base);
       if(extracted.kwh_6_base) REF.elec.kwh_6_base=extracted.kwh_6_base;
       if(extracted.abo_9_base) REF.elec.abo_9_base=extracted.abo_9_base;
       if(extracted.kwh_9_base) REF.elec.kwh_9_base=extracted.kwh_9_base;
@@ -1403,7 +1457,11 @@ async function calcRefPDF(energy) {
       REF.gas.pdfName=file.name; pendingRefFile.gas=null;
     }
     showToast(count>0?'✓ '+count+' valeurs extraites':'⚠️ Aucune valeur détectée', count>0?'success':'error');
+    console.log('Before renderSidebar, REF.elec.abo_6_base =', REF.elec.abo_6_base);
     renderSidebar();
+    console.log('After renderSidebar, REF.elec.abo_6_base =', REF.elec.abo_6_base);
+    postRenderRef();
+    var chk=document.getElementById('r_abo_6b'); console.log('After postRenderRef, r_abo_6b.value =', chk?chk.value:'NOT FOUND');
   } catch(err){showToast('Erreur PDF','error');console.error(err);}
 }
 
@@ -1441,88 +1499,164 @@ function fmtE(v,decimals) {
 
 // ── COMPUTE RANKINGS ──
 function computeElecRankings() {
-  var r=getActiveREF('elec');
-  var sups=getActiveSuppliers();
-  var SELF='Alterna Energie France';
-  var vCosts={
-    e6b:calcElecCost({abo_6_base:r.abo_6_base,kwh_6_base:r.kwh_6_base},'6','base',CONSOS.elec_6_base),
-    e9b:calcElecCost({abo_9_base:r.abo_9_base,kwh_9_base:r.kwh_9_base},'9','base',CONSOS.elec_9_base),
-    e6h:calcElecCost({abo_6_hc:r.abo_6_hc,hp_6:r.hp_6,hc_6:r.hc_6},'6','hc',CONSOS.elec_6_hc),
-    e9h:calcElecCost({abo_9_hc:r.abo_9_hc,hp_9:r.hp_9,hc_9:r.hc_9},'9','hc',CONSOS.elec_9_hc),
+  var r = getActiveREF('elec');
+  var sups = getActiveSuppliers();
+  var SELF = 'Alterna Energie France';
+
+  // Annual cost calculation
+  function cost6b(d)  { var a=d.abo_6_base, k=d.kwh_6_base;   if(!a||!k) return null; return a*12 + k*CONSOS.elec_6_base; }
+  function cost9b(d)  { var a=d.abo_9_base, k=d.kwh_9_base;   if(!a||!k) return null; return a*12 + k*CONSOS.elec_9_base; }
+  function cost6h(d)  { var a=d.abo_6_hc,   hp=d.hp_6, hc=d.hc_6; if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_6_hc_hp + hc*CONSOS.elec_6_hc_hc; }
+  function cost9h(d)  { var a=d.abo_9_hc,   hp=d.hp_9, hc=d.hc_9; if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_9_hc_hp + hc*CONSOS.elec_9_hc_hc; }
+
+  var refD = {
+    abo_6_base:r.abo_6_base, kwh_6_base:r.kwh_6_base,
+    abo_9_base:r.abo_9_base, kwh_9_base:r.kwh_9_base,
+    abo_6_hc:r.abo_6_hc, hp_6:r.hp_6, hc_6:r.hc_6,
+    abo_9_hc:r.abo_9_hc, hp_9:r.hp_9, hc_9:r.hc_9
   };
-  var res={e6b:[],e9b:[],e6h:[],e9h:[]};
-  var offerName=r.offerName||'Sérénité Verte 12m';
-  res.e6b.push({name:SELF,offer:offerName,isSelf:true,cost:vCosts.e6b,ecart:0,ecart_abo:0,ecart_kwh:0});
-  res.e9b.push({name:SELF,offer:offerName,isSelf:true,cost:vCosts.e9b,ecart:0,ecart_abo:0,ecart_kwh:0});
-  res.e6h.push({name:SELF,offer:offerName,isSelf:true,cost:vCosts.e6h,ecart:0,ecart_abo:0,ecart_hp:0,ecart_hc:0});
-  res.e9h.push({name:SELF,offer:offerName,isSelf:true,cost:vCosts.e9h,ecart:0,ecart_abo:0,ecart_hp:0,ecart_hc:0});
-  sups.forEach(function(s){
-    if(s.name===SELF) return;
-    if(s.elec.status!=='done') return;
-    var d=s.elec.data;
-    var c6b=calcElecCost(d,'6','base',CONSOS.elec_6_base);
-    var c9b=calcElecCost(d,'9','base',CONSOS.elec_9_base);
-    var c6h=calcElecCost(d,'6','hc',CONSOS.elec_6_hc);
-    var c9h=calcElecCost(d,'9','hc',CONSOS.elec_9_hc);
-    var base={name:s.name,offer:d.offer||'—',isSelf:false};
-    if(c6b!==null) res.e6b.push(Object.assign({},base,{cost:c6b,ecart:c6b-vCosts.e6b,ecart_abo:(d.abo_6_base||0)-r.abo_6_base,ecart_kwh:(d.kwh_6_base||0)-r.kwh_6_base}));
-    if(c9b!==null) res.e9b.push(Object.assign({},base,{cost:c9b,ecart:c9b-vCosts.e9b,ecart_abo:(d.abo_9_base||0)-r.abo_9_base,ecart_kwh:(d.kwh_9_base||0)-r.kwh_9_base}));
-    if(c6h!==null) res.e6h.push(Object.assign({},base,{cost:c6h,ecart:c6h-vCosts.e6h,ecart_abo:(d.abo_6_hc||0)-r.abo_6_hc,ecart_hp:(d.hp_6||0)-r.hp_6,ecart_hc:(d.hc_6||0)-r.hc_6}));
-    if(c9h!==null) res.e9h.push(Object.assign({},base,{cost:c9h,ecart:c9h-vCosts.e9h,ecart_abo:(d.abo_9_hc||0)-r.abo_9_hc,ecart_hp:(d.hp_9||0)-r.hp_9,ecart_hc:(d.hc_9||0)-r.hc_9}));
+  var vCosts = { e6b:cost6b(refD), e9b:cost9b(refD), e6h:cost6h(refD), e9h:cost9h(refD) };
+  var offerName = r.offerName || 'Sérénité Verte 12m';
+
+  var res = { e6b:[], e9b:[], e6h:[], e9h:[] };
+
+  // Alterna = reference row: show absolute values
+  res.e6b.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_6_base, kwh:r.kwh_6_base, annuel:vCosts.e6b,
+    ecart_abo:null, ecart_kwh:null, ecart:0});
+  res.e9b.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_9_base, kwh:r.kwh_9_base, annuel:vCosts.e9b,
+    ecart_abo:null, ecart_kwh:null, ecart:0});
+  res.e6h.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_6_hc, hp:r.hp_6, hc:r.hc_6, annuel:vCosts.e6h,
+    ecart_abo:null, ecart_hp:null, ecart_hc:null, ecart:0});
+  res.e9h.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_9_hc, hp:r.hp_9, hc:r.hc_9, annuel:vCosts.e9h,
+    ecart_abo:null, ecart_hp:null, ecart_hc:null, ecart:0});
+
+  sups.forEach(function(s) {
+    if (s.name === SELF) return;
+    if (s.elec.status !== 'done') return;
+    var d = s.elec.data;
+    var base = {name:s.name, offer:d.offer||'—', isSelf:false};
+    var c6b = cost6b(d), c9b = cost9b(d), c6h = cost6h(d), c9h = cost9h(d);
+    if (c6b!==null) res.e6b.push(Object.assign({},base,{
+      ecart_abo:(d.abo_6_base||0)-r.abo_6_base,
+      ecart_kwh:(d.kwh_6_base||0)-r.kwh_6_base,
+      ecart: vCosts.e6b!==null ? c6b-vCosts.e6b : null
+    }));
+    if (c9b!==null) res.e9b.push(Object.assign({},base,{
+      ecart_abo:(d.abo_9_base||0)-r.abo_9_base,
+      ecart_kwh:(d.kwh_9_base||0)-r.kwh_9_base,
+      ecart: vCosts.e9b!==null ? c9b-vCosts.e9b : null
+    }));
+    if (c6h!==null) res.e6h.push(Object.assign({},base,{
+      ecart_abo:(d.abo_6_hc||0)-r.abo_6_hc,
+      ecart_hp:(d.hp_6||0)-r.hp_6,
+      ecart_hc:(d.hc_6||0)-r.hc_6,
+      ecart: vCosts.e6h!==null ? c6h-vCosts.e6h : null
+    }));
+    if (c9h!==null) res.e9h.push(Object.assign({},base,{
+      ecart_abo:(d.abo_9_hc||0)-r.abo_9_hc,
+      ecart_hp:(d.hp_9||0)-r.hp_9,
+      ecart_hc:(d.hc_9||0)-r.hc_9,
+      ecart: vCosts.e9h!==null ? c9h-vCosts.e9h : null
+    }));
   });
-  ['e6b','e9b','e6h','e9h'].forEach(function(k){res[k].sort(function(a,b){return a.ecart-b.ecart;});});
+
+  ['e6b','e9b','e6h','e9h'].forEach(function(k){
+    res[k].sort(function(a,b){
+      return (a.ecart||0)-(b.ecart||0);
+    });
+  });
   return res;
 }
 
+
 function computeGasRankings() {
-  var r=getActiveREF('gas');
-  var sups=getActiveSuppliers();
-  var SELF='Alterna Energie France';
-  var vB0=calcGasCost({g_abo_b0:r.abo_b0,g_kwh_b0_z1:r.kwh_b0_z1},'b0',CONSOS.gas_b0);
-  var vB1=calcGasCost({g_abo_b1:r.abo_b1,g_kwh_b1_z1:r.kwh_b1_z1},'b1',CONSOS.gas_b1);
-  var res={b0:[],b1:[]};
-  var offerName=r.offerName||'Gaz Essentiel -5%';
-  res.b0.push({name:SELF,offer:offerName,isSelf:true,cost:vB0,ecart:0,ecart_abo:0,ecart_kwh:0});
-  res.b1.push({name:SELF,offer:offerName,isSelf:true,cost:vB1,ecart:0,ecart_abo:0,ecart_kwh:0});
-  sups.forEach(function(s){
-    if(s.name===SELF) return;
-    if(s.gas.status!=='done') return;
-    var d=s.gas.data;
-    var cb0=calcGasCost(d,'b0',CONSOS.gas_b0);
-    var cb1=calcGasCost(d,'b1',CONSOS.gas_b1);
-    var base={name:s.name,offer:d.offer||'—',isSelf:false};
-    if(cb0!==null) res.b0.push(Object.assign({},base,{cost:cb0,ecart:cb0-vB0,ecart_abo:(d.g_abo_b0||0)-r.abo_b0,ecart_kwh:(d.g_kwh_b0_z1||0)-r.kwh_b0_z1}));
-    if(cb1!==null) res.b1.push(Object.assign({},base,{cost:cb1,ecart:cb1-vB1,ecart_abo:(d.g_abo_b1||0)-r.abo_b1,ecart_kwh:(d.g_kwh_b1_z1||0)-r.kwh_b1_z1}));
+  var r = getActiveREF('gas');
+  var sups = getActiveSuppliers();
+  var SELF = 'Alterna Energie France';
+  var vB0 = calcGasCost({g_abo_b0:r.abo_b0,g_kwh_b0_z1:r.kwh_b0_z1},'b0',CONSOS.gas_b0);
+  var vB1 = calcGasCost({g_abo_b1:r.abo_b1,g_kwh_b1_z1:r.kwh_b1_z1},'b1',CONSOS.gas_b1);
+  var res = {b0:[], b1:[]};
+  var offerName = r.offerName || 'Gaz Essentiel -5%';
+  res.b0.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_b0, kwh:r.kwh_b0_z1, annuel:vB0, ecart:0});
+  res.b1.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_b1, kwh:r.kwh_b1_z1, annuel:vB1, ecart:0});
+  sups.forEach(function(s) {
+    if (s.name===SELF) return;
+    if (s.gas.status!=='done') return;
+    var d = s.gas.data;
+    var cb0 = calcGasCost(d,'b0',CONSOS.gas_b0);
+    var cb1 = calcGasCost(d,'b1',CONSOS.gas_b1);
+    var base = {name:s.name, offer:d.offer||'—', isSelf:false};
+    if (cb0!==null) res.b0.push(Object.assign({},base,{
+      ecart_abo:(d.g_abo_b0||0)-r.abo_b0,
+      ecart_kwh:(d.g_kwh_b0_z1||0)-r.kwh_b0_z1,
+      ecart: vB0!==null ? cb0-vB0 : null
+    }));
+    if (cb1!==null) res.b1.push(Object.assign({},base,{
+      ecart_abo:(d.g_abo_b1||0)-r.abo_b1,
+      ecart_kwh:(d.g_kwh_b1_z1||0)-r.kwh_b1_z1,
+      ecart: vB1!==null ? cb1-vB1 : null
+    }));
   });
-  ['b0','b1'].forEach(function(k){res[k].sort(function(a,b){return a.ecart-b.ecart;});});
+  ['b0','b1'].forEach(function(k){
+    res[k].sort(function(a,b){
+      return (a.ecart||0)-(b.ecart||0);
+    });
+  });
   return res;
 }
 
 // ── RANK TABLE ──
-function rankTable(data,cols) {
-  if(!data.length) return '<p style="font-size:12px;color:var(--text3);padding:8px 0;">Aucune donnée</p>';
-  var headers=cols.map(function(c){return '<th>'+c+'</th>';}).join('');
-  var rows=data.map(function(row,i){
-    var isSelf=row.isSelf;
-    var rankCls=isSelf?'rank self':(i<3?'rank top':'rank');
-    var nameCls=isSelf?'supplier-cell self':'supplier-cell';
-    var rankLabel=isSelf?'★':'#'+(i+1);
-    var rowCls=isSelf?'class="ref-row"':'';
-    var cells='<td class="'+rankCls+'">'+rankLabel+'</td>'
-      +'<td class="'+nameCls+'">'+row.name+'</td>'
-      +'<td class="offer-cell">'+(row.offer||'—')+'</td>';
-    if(cols.includes('Abo (€/mois)'))  cells+='<td class="num">'+(row.cost?(row.cost/12).toFixed(2):'—')+'</td>';
-    if(cols.includes('Écart abo'))      cells+='<td class="num">'+fmtE(row.ecart_abo,2)+'</td>';
-    if(cols.includes('Écart kWh'))      cells+='<td class="num">'+fmtE(row.ecart_kwh,4)+'</td>';
-    if(cols.includes('Écart HP'))       cells+='<td class="num">'+fmtE(row.ecart_hp,4)+'</td>';
-    if(cols.includes('Écart HC'))       cells+='<td class="num">'+fmtE(row.ecart_hc,4)+'</td>';
-    cells+='<td class="num">'+fmtE(row.ecart,2)+'</td>';
+function rankTable(data, cols) {
+  if (!data.length) return '<p style="font-size:12px;color:var(--text3);padding:8px 0;">Aucune donnée</p>';
+  var isHC = cols.includes('Écart HP');
+  var headers = cols.map(function(c){return '<th>'+c+'</th>';}).join('');
+  var rows = data.map(function(row, i) {
+    var isSelf = row.isSelf;
+    var rankCls = isSelf ? 'rank self' : (i<3 ? 'rank top' : 'rank');
+    var nameCls = isSelf ? 'supplier-cell self' : 'supplier-cell';
+    var rankLabel = isSelf ? '★' : (function(){
+      var pos = data.filter(function(r){return !r.isSelf;}).indexOf(row) + 1;
+      return '#'+pos;
+    })();
+    var rowCls = isSelf ? 'class="ref-row"' : '';
+
+    var cells = '<td class="'+rankCls+'">'+rankLabel+'</td>'
+      + '<td class="'+nameCls+'">'+row.name+'</td>'
+      + '<td class="offer-cell">'+(row.offer||'—')+'</td>';
+
+    if (isSelf) {
+      // Show absolute values for Alterna
+      cells += '<td class="num">'+(row.abo!==undefined&&row.abo!==null ? row.abo.toFixed(2) : '—')+'</td>';
+      if (isHC) {
+        cells += '<td class="num">'+(row.hp!==undefined&&row.hp!==null ? row.hp.toFixed(4) : '—')+'</td>';
+        cells += '<td class="num">'+(row.hc!==undefined&&row.hc!==null ? row.hc.toFixed(4) : '—')+'</td>';
+      } else {
+        cells += '<td class="num">'+(row.kwh!==undefined&&row.kwh!==null ? row.kwh.toFixed(4) : '—')+'</td>';
+      }
+      cells += '<td class="num">'+(row.annuel!==null&&row.annuel!==undefined ? Math.round(row.annuel)+' €' : '—')+'</td>';
+    } else {
+      // Show ecarts for competitors
+      cells += '<td class="num">'+fmtE(row.ecart_abo,2)+'</td>';
+      if (isHC) {
+        cells += '<td class="num">'+fmtE(row.ecart_hp,4)+'</td>';
+        cells += '<td class="num">'+fmtE(row.ecart_hc,4)+'</td>';
+      } else {
+        cells += '<td class="num">'+fmtE(row.ecart_kwh,4)+'</td>';
+      }
+      cells += '<td class="num">'+fmtE(row.ecart,0)+'</td>';
+    }
     return '<tr '+rowCls+'>'+cells+'</tr>';
   }).join('');
   return '<table><thead><tr>'+headers+'</tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-// ── MONTH BAR ──
+
 function renderResultsHTML() {
   var isElec=currentEnergy==='elec';
   var monthBar=buildMonthBar();
@@ -1539,8 +1673,8 @@ function renderResultsHTML() {
     +'<div style="display:flex;gap:6px;">'+saveBtn+pdfBtn+csvBtn+'</div></div>';
   if(isElec){
     var r=computeElecRankings();
-    var C_BASE=['#','Fournisseur','Offre','Abo (€/mois)','Écart abo','Écart kWh','Écart annuel €'];
-    var C_HC  =['#','Fournisseur','Offre','Abo (€/mois)','Écart abo','Écart HP','Écart HC','Écart annuel €'];
+    var C_BASE=['#','Fournisseur','Offre','Abo (€/mois)','Écart kWh','Écart annuel €'];
+    var C_HC  =['#','Fournisseur','Offre','Abo (€/mois)','Écart HP','Écart HC','Écart annuel €'];
     return header
       +'<div class="segment-label">6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an</div>'+rankTable(r.e6b,C_BASE)
       +'<div class="segment-label">9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an</div>'+rankTable(r.e9b,C_BASE)
