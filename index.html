@@ -460,15 +460,21 @@ function renderSidebar() {
           <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Nom de l’offre</label>
           <input type="text" value="${REF.elec.offerName}" style="width:100%;padding:5px 7px;border:1px solid #B8D8D6;border-radius:5px;font-size:11px;background:white;color:var(--text);outline:none;" oninput="REF.elec.offerName=this.value">
         </div>
-        <div class="ref-grid">
-          <div class="ref-field"><label>Abo 6kVA Base (€/mois)</label><input type="number" id="r_abo_6b" value="${REF.elec.abo_6_base}" step="any" oninput="REF.elec.abo_6_base=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>kWh 6kVA Base (€/kWh)</label><input type="number" id="r_k6b" value="${REF.elec.kwh_6_base.toFixed(4)}" step="0.0001" oninput="REF.elec.kwh_6_base=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>Abo 9kVA Base (€/mois)</label><input type="number" id="r_abo_9b" value="${REF.elec.abo_9_base}" step="any" oninput="REF.elec.abo_9_base=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>kWh 9kVA Base (€/kWh)</label><input type="number" id="r_k9b" value="${REF.elec.kwh_9_base.toFixed(4)}" step="0.0001" oninput="REF.elec.kwh_9_base=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>Abo 6kVA HC (€/mois)</label><input type="number" id="r_abo_6h" value="${REF.elec.abo_6_hc}" step="any" oninput="REF.elec.abo_6_hc=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>HP (€/kWh)</label><input type="number" id="r_hp6" value="${REF.elec.hp_6.toFixed(4)}" step="0.0001" oninput="REF.elec.hp_6=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>HC (€/kWh)</label><input type="number" id="r_hc6" value="${REF.elec.hc_6.toFixed(4)}" step="0.0001" oninput="REF.elec.hc_6=parseFloat(this.value)"></div>
-          <div class="ref-field"><label>Abo 9kVA HC (€/mois)</label><input type="number" id="r_abo_9h" value="${REF.elec.abo_9_hc}" step="any" oninput="REF.elec.abo_9_hc=parseFloat(this.value)"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Abonnement (€/mois)</div>
+          <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Prix kWh (€/kWh)</div>
+          <div class="ref-field"><label>Abo 6kVA Base</label><input type="number" id="r_abo_6b" value="${REF.elec.abo_6_base.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_6_base=parseFloat(this.value)||REF.elec.abo_6_base;renderResults()"></div>
+          <div class="ref-field"><label>kWh 6kVA Base</label><input type="number" id="r_k6b" value="${REF.elec.kwh_6_base.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.kwh_6_base=parseFloat(this.value)||REF.elec.kwh_6_base;renderResults()"></div>
+          <div class="ref-field"><label>Abo 9kVA Base</label><input type="number" id="r_abo_9b" value="${REF.elec.abo_9_base.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_9_base=parseFloat(this.value)||REF.elec.abo_9_base;renderResults()"></div>
+          <div class="ref-field"><label>kWh 9kVA Base</label><input type="number" id="r_k9b" value="${REF.elec.kwh_9_base.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.kwh_9_base=parseFloat(this.value)||REF.elec.kwh_9_base;renderResults()"></div>
+          <div class="ref-field"><label>Abo 6kVA HC</label><input type="number" id="r_abo_6h" value="${REF.elec.abo_6_hc.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_6_hc=parseFloat(this.value)||REF.elec.abo_6_hc;renderResults()"></div>
+          <div class="ref-field"><label>HP 6kVA</label><input type="number" id="r_hp6" value="${REF.elec.hp_6.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hp_6=parseFloat(this.value)||REF.elec.hp_6;renderResults()"></div>
+          <div class="ref-field"><label>Abo 9kVA HC</label><input type="number" id="r_abo_9h" value="${REF.elec.abo_9_hc.toFixed(2)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(2)" oninput="REF.elec.abo_9_hc=parseFloat(this.value)||REF.elec.abo_9_hc;renderResults()"></div>
+          <div class="ref-field"><label>HC 6kVA</label><input type="number" id="r_hc6" value="${REF.elec.hc_6.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hc_6=parseFloat(this.value)||REF.elec.hc_6;renderResults()"></div>
+          <div class="ref-field" style="grid-column:1"></div>
+          <div class="ref-field"><label>HP 9kVA</label><input type="number" id="r_hp9" value="${REF.elec.hp_9.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hp_9=parseFloat(this.value)||REF.elec.hp_9;renderResults()"></div>
+          <div class="ref-field" style="grid-column:1"></div>
+          <div class="ref-field"><label>HC 9kVA</label><input type="number" id="r_hc9" value="${REF.elec.hc_9.toFixed(4)}" step="any" onblur="this.value=parseFloat(this.value).toFixed(4)" oninput="REF.elec.hc_9=parseFloat(this.value)||REF.elec.hc_9;renderResults()"></div>
         </div>
       </div>
     </div>`;
