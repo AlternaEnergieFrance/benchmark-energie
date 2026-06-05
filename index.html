@@ -1736,6 +1736,7 @@ function dl(csv,name){var b=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'
 
 // ── EXPORT PDF ──
 function exportPDF() {
+  try {
   var energy = currentEnergy;
   var isElec = energy === 'elec';
   var monthLabel = currentMonthKey ? getMonthLabel(currentMonthKey) : new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
@@ -1842,6 +1843,10 @@ function exportPDF() {
   document.body.removeChild(a);
   setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   showToast('✓ Téléchargé — ouvre le fichier et fais Ctrl+P pour imprimer', 'success');
+  } catch(err) {
+    console.error('exportPDF error:', err);
+    showToast('Erreur: ' + err.message, 'error');
+  }
 }
 
 
