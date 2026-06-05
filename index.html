@@ -445,11 +445,11 @@ function init() {
 function switchEnergy(e, btn) {
   currentEnergy = e;
   currentSupplier = null;
+  currentTab = 'results'; // Always show ranking when switching energy
   document.querySelectorAll('.energy-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   renderSidebar();
   renderContent();
-
 }
 
 // ── SIDEBAR ──
@@ -1376,24 +1376,99 @@ function parseElecTariffs(rawText) {
 }
 
 
-function parseGasTariffs(text) {
-  const d={};
-  const norm=text.replace(/\s+/g,' ').replace(/,/g,'.');
-  const pn=s=>{const n=parseFloat(s);return isNaN(n)?null:n;};
-  // Find abo annuel (100-500) and kWh (5-20 cts)
-  const aboRe=/(\d{3,}\.\d{2})\s*(\d{3,}\.\d{2})/g;
-  let m;
-  const abos=[];
-  while((m=aboRe.exec(norm))!==null){const ht=pn(m[1]),ttc=pn(m[2]);if(ht>50&&ht<600&&ttc>ht)abos.push({ht,ttc,idx:m.index});}
-  if(abos[0]) d.g_abo_b0 = abos[0].ttc/12;
-  if(abos[1]) d.g_abo_b1 = abos[1].ttc/12;
-  const kwhRe=/\b(1[0-9]\.[0-9]{2}|[89]\.[0-9]{2})\b/g;
-  const kwhs=[];
-  while((m=kwhRe.exec(norm))!==null){kwhs.push(pn(m[1]));}
-  if(kwhs.length>=1) d.g_kwh_b0_z1=kwhs[0];
-  if(kwhs.length>=2) d.g_kwh_b1_z1=kwhs[1];
-  // PDF values in cts — convert to €/kWh
-  ['g_kwh_b0_z1','g_kwh_b1_z1'].forEach(function(k){ if(d[k]&&d[k]>1) d[k]=d[k]/100; });
+function parseGasTariffs(rawText) {
+  var d = {};
+  var norm = rawText.replace(/,/g,'.').replace(/\s+/g,' ');
+  var lines = norm.split(/[\n\r]/).map(function(l){return l.trim();}).filter(Boolean);
+  
+  function pf(s){ var v=parseFloat(s); return isNaN(v)?null:v; }
+
+  // ── Collect all numbers by category ──────────────────────────
+  var annualAbos = []; // 50-700: annual abos
+  var monthlyAbos = []; // 8-45: monthly abos  
+  var kwhCts = []; // 5-25: kWh in cts
+  var kwhEur = []; // 0.05-0.25: kWh in €
+
+  // Find HT/TTC pairs for annual abos (e.g. "119.17 159.23")
+  var pairRe = /(\d{2,3}\.\d{2})\s+(\d{2,3}\.\d{2})/g;
+  var m;
+  while((m=pairRe.exec(norm))!==null){
+    var a=pf(m[1]), b=pf(m[2]);
+    if(!a||!b) continue;
+    var larger=Math.max(a,b), smaller=Math.min(a,b);
+    if(larger>90&&larger<700&&b>a) annualAbos.push(larger); // TTC annual
+    else if(larger>8&&larger<45&&b>a) monthlyAbos.push(larger); // TTC monthly
+  }
+
+  // Find all decimal numbers
+  var allNums = (norm.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(Boolean);
+  allNums.forEach(function(v){
+    if(v>5&&v<25) kwhCts.push(v);
+    else if(v>0.05&&v<0.25) kwhEur.push(v);
+    else if(v>8&&v<45&&monthlyAbos.indexOf(v)<0) monthlyAbos.push(v);
+    else if(v>50&&v<700&&annualAbos.indexOf(v)<0) annualAbos.push(v);
+  });
+
+  // ── Extract abo B0 and B1 ─────────────────────────────────────
+  if(annualAbos.length>=2){
+    annualAbos.sort(function(a,b){return a-b;});
+    d.g_abo_b0 = annualAbos[0]/12; // smaller = B0 (cuisine)
+    d.g_abo_b1 = annualAbos[1]/12; // larger = B1 (chauffage)
+  } else if(annualAbos.length===1){
+    d.g_abo_b0 = annualAbos[0]/12;
+  } else if(monthlyAbos.length>=2){
+    monthlyAbos.sort(function(a,b){return a-b;});
+    d.g_abo_b0 = monthlyAbos[0];
+    d.g_abo_b1 = monthlyAbos[1];
+  } else if(monthlyAbos.length===1){
+    d.g_abo_b0 = monthlyAbos[0];
+  }
+
+  // ── Extract kWh TTC ──────────────────────────────────────────
+  // Prefer € values (already TTC); cts need /100
+  // For HT/TTC pairs, always take TTC (larger of the pair)
+  // Strategy: find consecutive HT/TTC pairs for kWh
+  var kwhPairs = [];
+  var kwhPairRe = /(0\.\d{4,5})\s+(0\.\d{4,5})/g;
+  while((m=kwhPairRe.exec(norm))!==null){
+    var a=pf(m[1]),b=pf(m[2]);
+    if(a&&b&&b>a&&b>0.05&&b<0.25) kwhPairs.push(b); // TTC = larger
+  }
+  if(kwhPairs.length>=2){
+    d.g_kwh_b0_z1 = kwhPairs[0]; // first = B0
+    d.g_kwh_b1_z1 = kwhPairs[1]; // second = B1
+  } else if(kwhPairs.length===1){
+    // Check if kwhCts has both
+    if(kwhCts.length>=2){
+      kwhCts.sort(function(a,b){return b-a;}); // largest first = B0 (higher tariff)
+      d.g_kwh_b0_z1 = kwhCts[0]/100;
+      d.g_kwh_b1_z1 = kwhCts[1]/100;
+    } else {
+      d.g_kwh_b0_z1 = kwhPairs[0];
+    }
+  } else if(kwhEur.length>=2){
+    // Multiple €/kWh values - take TTC pairs
+    // Find HT/TTC pattern: smaller followed by larger
+    var eurPairs=[];
+    for(var i=0;i<kwhEur.length-1;i++){
+      var ratio=kwhEur[i+1]/kwhEur[i];
+      if(ratio>1.1&&ratio<1.5) eurPairs.push(kwhEur[i+1]); // take TTC
+    }
+    if(eurPairs.length>=2){ d.g_kwh_b0_z1=eurPairs[0]; d.g_kwh_b1_z1=eurPairs[1]; }
+    else if(eurPairs.length===1){ d.g_kwh_b0_z1=eurPairs[0]; }
+    else { 
+      // No clear HT/TTC pairs - take first two values (already TTC if EDF-style)
+      kwhEur.sort(function(a,b){return b-a;});
+      d.g_kwh_b0_z1=kwhEur[0]; d.g_kwh_b1_z1=kwhEur[1];
+    }
+  } else if(kwhCts.length>=2){
+    kwhCts.sort(function(a,b){return b-a;});
+    d.g_kwh_b0_z1 = kwhCts[0]/100;
+    d.g_kwh_b1_z1 = kwhCts[1]/100;
+  } else if(kwhCts.length===1){
+    d.g_kwh_b0_z1 = kwhCts[0]/100;
+  }
+
   return d;
 }
 function applyExtracted(data) {
@@ -1705,7 +1780,7 @@ function renderResultsHTML() {
       +'<div class="segment-label">9 kVA Option HP/HC — conso moy. '+(CONSOS.elec_9_hc_hp+CONSOS.elec_9_hc_hc)+' kWh/an</div>'+rankTable(r.e9h,C_HC);
   } else {
     var r=computeGasRankings();
-    var C_GAS=['#','Fournisseur','Offre','Abo (€/mois)','Écart abo','Écart kWh','Écart annuel €'];
+    var C_GAS=['#','Fournisseur','Offre','Abo (€/mois)','Écart kWh','Écart annuel €'];
     return header
       +'<div class="segment-label">B0 — Cuisine &amp; Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an</div>'+rankTable(r.b0,C_GAS)
       +'<div class="segment-label">B1 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an</div>'+rankTable(r.b1,C_GAS);
