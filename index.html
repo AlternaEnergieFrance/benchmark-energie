@@ -1410,9 +1410,6 @@ function parseGasTariffs(rawText) {
   });
 
   // ── Extract abo B0 and B1 ─────────────────────────────────────
-  console.log('GAS PARSER - annualAbos:', JSON.stringify(annualAbos), 'monthlyAbos:', JSON.stringify(monthlyAbos));
-  console.log('GAS PARSER - kwhCts:', JSON.stringify(kwhCts), 'kwhEur:', JSON.stringify(kwhEur));
-  console.log('GAS PARSER - raw norm (first 500):', norm.substring(0,500));
   if(annualAbos.length>=4){
     // 4 values = HT_B0, TTC_B0, HT_B1, TTC_B1 → take positions 1 and 3
     annualAbos.sort(function(a,b){return a-b;});
@@ -1449,10 +1446,10 @@ function parseGasTariffs(rawText) {
     var a=pf(m[1]),b=pf(m[2]);
     if(a&&b&&b>a&&b>0.05&&b<0.25) kwhPairs.push(b); // TTC = larger
   }
-  // Cluster cts values into B0 range (12-18) and B1 range (8-12)
+  // Cluster cts values: TTC B0 ~13-18 cts, TTC B1 ~10.5-13 cts, HT values <10.5 ignored
   var ctsPairs = [];
-  var ctsB0 = kwhCts.filter(function(v){return v>=12&&v<=18;}); // B0 zone ~14 cts
-  var ctsB1 = kwhCts.filter(function(v){return v>=8&&v<12;});   // B1 zones ~11 cts
+  var ctsB0 = kwhCts.filter(function(v){return v>=13&&v<=18;}); // TTC B0 ~14 cts
+  var ctsB1 = kwhCts.filter(function(v){return v>10.5&&v<13;}); // TTC B1 ~11 cts
   // Also check consecutive pairs
   for(var i=0;i<kwhCts.length-1;i++){
     var ratio=kwhCts[i+1]/kwhCts[i];
