@@ -1410,6 +1410,9 @@ function parseGasTariffs(rawText) {
   });
 
   // ── Extract abo B0 and B1 ─────────────────────────────────────
+  console.log('GAS PARSER - annualAbos:', JSON.stringify(annualAbos), 'monthlyAbos:', JSON.stringify(monthlyAbos));
+  console.log('GAS PARSER - kwhCts:', JSON.stringify(kwhCts), 'kwhEur:', JSON.stringify(kwhEur));
+  console.log('GAS PARSER - raw norm (first 500):', norm.substring(0,500));
   if(annualAbos.length>=4){
     // 4 values = HT_B0, TTC_B0, HT_B1, TTC_B1 → take positions 1 and 3
     annualAbos.sort(function(a,b){return a-b;});
