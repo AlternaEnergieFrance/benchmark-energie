@@ -320,27 +320,76 @@ const PRELOAD = {
       '15':{abo_base:30.04,kwh_base:0.1616,abo_hc:30.04,kwh_hp:0.1726,kwh_hc:0.1337},
       '18':{abo_base:33.85,kwh_base:0.1616,abo_hc:33.85,kwh_hp:0.1726,kwh_hc:0.1337}
     }
+  },
+  gas: {
+    'Engie': {
+      offer:'GAZ REFERENCE 3 ANS',
+      b0:{abo:12.27, kwh:0.1466},
+      b1:{abo:30.91, kwh:0.1146}
+    },
+    'Total Energies': {
+      offer:'OFFRE SPECIALE GAZ',
+      b0:{abo:12.27, kwh:0.1538},
+      b1:{abo:28.66, kwh:0.1209}
+    },
+    'Eni Plénitude': {
+      offer:'PLENIFIX 1 AN GAZ',
+      b0:{abo:173.88/12, kwh:0.15625},
+      b1:{abo:370.53/12, kwh:0.12378}
+    },
+    'Ohm': {
+      offer:'EXTRA ECO GAZ',
+      b0:{abo:10.95, kwh:0.1351},
+      b1:{abo:27.73, kwh:0.0971}
+    },
+    'Happ-e': {
+      offer:'GAZ HAPP-E 1 AN',
+      b0:{abo:159.39/12, kwh:0.14116},
+      b1:{abo:482.14/12, kwh:0.10723}
+    },
+    'EDF': {
+      offer:'AVANTAGE GAZ 2 ANS',
+      b0:{abo:9.87, kwh:0.1385},
+      b1:{abo:23.29, kwh:0.1080}
+    },
+    'Octopus': {
+      offer:'GAZ FIXE -2% JUIN 2026',
+      b0:{abo:12.27, kwh:0.1448},
+      b1:{abo:28.66, kwh:0.11402}
+    }
   }
 };
 
 // ── Apply preloaded data to suppliers on init ─────────────────────
 function applyPreload() {
   suppliers.forEach(function(sup) {
+    // Electricity
     var pd = PRELOAD.elec[sup.name];
-    if (!pd) return;
-    var d = sup.elec.data;
-    // Only apply if no data yet
-    if (Object.keys(d).length === 0) {
-      d.offer = pd.offer;
-      ['3','6','9','12','15','18'].forEach(function(k) {
-        var row = pd[k]; if (!row) return;
-        if (row.abo_base) d['abo_'+k+'_base'] = row.abo_base;
-        if (row.kwh_base) d['kwh_'+k+'_base'] = row.kwh_base;
-        if (row.abo_hc)   d['abo_'+k+'_hc']   = row.abo_hc;
-        if (row.kwh_hp)   { d['hp_'+k] = row.kwh_hp; }
-        if (row.kwh_hc)   { d['hc_'+k] = row.kwh_hc; }
-      });
-      sup.elec.status = 'done';
+    if (pd) {
+      var d = sup.elec.data;
+      if (Object.keys(d).length === 0) {
+        d.offer = pd.offer;
+        ['3','6','9','12','15','18'].forEach(function(k) {
+          var row = pd[k]; if (!row) return;
+          if (row.abo_base) d['abo_'+k+'_base'] = row.abo_base;
+          if (row.kwh_base) d['kwh_'+k+'_base'] = row.kwh_base;
+          if (row.abo_hc)   d['abo_'+k+'_hc']   = row.abo_hc;
+          if (row.kwh_hp)   d['hp_'+k] = row.kwh_hp;
+          if (row.kwh_hc)   d['hc_'+k] = row.kwh_hc;
+        });
+        sup.elec.status = 'done';
+      }
+    }
+    // Gas
+    var pg = PRELOAD.gas && PRELOAD.gas[sup.name];
+    if (pg) {
+      var gd = sup.gas.data;
+      if (Object.keys(gd).length === 0) {
+        gd.offer = pg.offer;
+        if (pg.b0) { gd.g_abo_b0 = pg.b0.abo; gd.g_kwh_b0_z1 = pg.b0.kwh; }
+        if (pg.b1) { gd.g_abo_b1 = pg.b1.abo; gd.g_kwh_b1_z1 = pg.b1.kwh; }
+        sup.gas.status = 'done';
+      }
     }
   });
 }
@@ -1635,8 +1684,7 @@ function renderResultsHTML() {
   var isElec=currentEnergy==='elec';
   var monthBar=buildMonthBar();
   var saveBtn=currentMonthKey?'':'<button class="save-btn" onclick="saveCurrentMonth()">💾 Sauvegarder</button>';
-  var pdfBtn='<button class="pdf-btn" onclick="exportPDF(\"'+currentEnergy+'\")">↓ PDF</button>';
-  var csvBtn='<button class="btn-export" onclick="'+(isElec?'exportElec':'exportGas')+'()">↓ CSV</button>';
+  var pdfBtn='<button class="pdf-btn" onclick="exportPDF()">↓ PDF</button>';
   var title=isElec?'Classement ⚡ Électricité':'Classement 🔥 Gaz';
   var subtitle='★ = Alterna Energie France (référence) · négatif = moins cher'
     +(currentMonthKey?' · <span style="color:var(--accent);font-weight:500">'+getMonthLabel(currentMonthKey)+'</span>':' · données en cours');
@@ -1687,7 +1735,8 @@ function exportGas(){
 function dl(csv,name){var b=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();showToast('✓ Export téléchargé','success');}
 
 // ── EXPORT PDF ──
-function exportPDF(energy) {
+function exportPDF() {
+  var energy = currentEnergy;
   var isElec = energy === 'elec';
   var monthLabel = currentMonthKey ? getMonthLabel(currentMonthKey) : new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   var rankings = isElec ? computeElecRankings() : computeGasRankings();
