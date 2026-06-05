@@ -1434,37 +1434,50 @@ function parseGasTariffs(rawText) {
     var a=pf(m[1]),b=pf(m[2]);
     if(a&&b&&b>a&&b>0.05&&b<0.25) kwhPairs.push(b); // TTC = larger
   }
+  // Find HT/TTC pairs in cts range (ratio ~1.2-1.5)
+  var ctsPairs = [];
+  for(var i=0;i<kwhCts.length-1;i++){
+    var ratio=kwhCts[i+1]/kwhCts[i];
+    if(ratio>1.1&&ratio<1.6) ctsPairs.push(kwhCts[i+1]); // TTC = larger
+  }
+  // Find HT/TTC pairs in € range
+  var eurPairs2=[];
+  for(var i=0;i<kwhEur.length-1;i++){
+    var ratio=kwhEur[i+1]/kwhEur[i];
+    if(ratio>1.1&&ratio<1.6) eurPairs2.push(kwhEur[i+1]);
+  }
+
   if(kwhPairs.length>=2){
-    d.g_kwh_b0_z1 = kwhPairs[0]; // first = B0
-    d.g_kwh_b1_z1 = kwhPairs[1]; // second = B1
-  } else if(kwhPairs.length===1){
-    // Check if kwhCts has both
-    if(kwhCts.length>=2){
-      kwhCts.sort(function(a,b){return b-a;}); // largest first = B0 (higher tariff)
-      d.g_kwh_b0_z1 = kwhCts[0]/100;
-      d.g_kwh_b1_z1 = kwhCts[1]/100;
-    } else {
+    d.g_kwh_b0_z1 = kwhPairs[0];
+    d.g_kwh_b1_z1 = kwhPairs[1];
+  } else if(ctsPairs.length>=2){
+    // Multiple HT/TTC pairs in cts: B0=largest TTC, B1=smallest TTC
+    ctsPairs.sort(function(a,b){return b-a;});
+    d.g_kwh_b0_z1 = ctsPairs[0]/100;   // largest = B0 (cuisine ~14 cts)
+    d.g_kwh_b1_z1 = ctsPairs[ctsPairs.length-1]/100; // smallest = B1 Zone1 (~11 cts)
+  } else if(ctsPairs.length===1){
+    if(kwhPairs.length===1){
       d.g_kwh_b0_z1 = kwhPairs[0];
+      d.g_kwh_b1_z1 = ctsPairs[0]/100;
+    } else {
+      d.g_kwh_b0_z1 = ctsPairs[0]/100;
     }
+  } else if(eurPairs2.length>=2){
+    eurPairs2.sort(function(a,b){return b-a;});
+    d.g_kwh_b0_z1 = eurPairs2[0];
+    d.g_kwh_b1_z1 = eurPairs2[eurPairs2.length-1];
+  } else if(eurPairs2.length===1){
+    d.g_kwh_b0_z1 = eurPairs2[0];
   } else if(kwhEur.length>=2){
-    // Multiple €/kWh values - take TTC pairs
-    // Find HT/TTC pattern: smaller followed by larger
-    var eurPairs=[];
-    for(var i=0;i<kwhEur.length-1;i++){
-      var ratio=kwhEur[i+1]/kwhEur[i];
-      if(ratio>1.1&&ratio<1.5) eurPairs.push(kwhEur[i+1]); // take TTC
-    }
-    if(eurPairs.length>=2){ d.g_kwh_b0_z1=eurPairs[0]; d.g_kwh_b1_z1=eurPairs[1]; }
-    else if(eurPairs.length===1){ d.g_kwh_b0_z1=eurPairs[0]; }
-    else { 
-      // No clear HT/TTC pairs - take first two values (already TTC if EDF-style)
-      kwhEur.sort(function(a,b){return b-a;});
-      d.g_kwh_b0_z1=kwhEur[0]; d.g_kwh_b1_z1=kwhEur[1];
-    }
+    kwhEur.sort(function(a,b){return b-a;});
+    d.g_kwh_b0_z1 = kwhEur[0];
+    d.g_kwh_b1_z1 = kwhEur[kwhEur.length-1]; // smallest = Zone 1
+  } else if(kwhEur.length===1){
+    d.g_kwh_b0_z1 = kwhEur[0];
   } else if(kwhCts.length>=2){
     kwhCts.sort(function(a,b){return b-a;});
     d.g_kwh_b0_z1 = kwhCts[0]/100;
-    d.g_kwh_b1_z1 = kwhCts[1]/100;
+    d.g_kwh_b1_z1 = kwhCts[kwhCts.length-1]/100; // smallest = Zone 1
   } else if(kwhCts.length===1){
     d.g_kwh_b0_z1 = kwhCts[0]/100;
   }
