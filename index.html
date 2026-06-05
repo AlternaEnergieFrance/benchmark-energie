@@ -1381,107 +1381,137 @@ function parseGasTariffs(rawText) {
   var norm = rawText.replace(/,/g,'.').replace(/\s+/g,' ');
   function pf(s){ var v=parseFloat(s); return isNaN(v)?null:v; }
 
-  // ── PRIORITY: EDF-style "Zone N abo kwh abo kwh" lines ───────
-  // e.g. "Zone 1 9.87 0.1385 23.29 0.1080 23.29 0.1080"
-  var zoneRe = /Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
-  var zoneM, zoneFound = false;
-  while((zoneM = zoneRe.exec(norm)) !== null) {
-    var zn = parseInt(zoneM[1]);
-    var aboB0z = pf(zoneM[2]), kwhB0z = pf(zoneM[3]);
-    var aboB1z = pf(zoneM[4]), kwhB1z = pf(zoneM[5]);
-    if(zn === 1) {
-      if(aboB0z && aboB0z > 5 && aboB0z < 50) { d.g_abo_b0 = aboB0z; zoneFound = true; }
-      if(kwhB0z && kwhB0z > 0.05 && kwhB0z < 0.3) { d.g_kwh_b0_z1 = kwhB0z; }
-      if(aboB1z && aboB1z > 5 && aboB1z < 50) { d.g_abo_b1 = aboB1z; }
-      if(kwhB1z && kwhB1z > 0.05 && kwhB1z < 0.3) { d.g_kwh_b1_z1 = kwhB1z; }
+  // ── DETECT FORMAT ─────────────────────────────────────────────
+  var hasZoneN = /Zone\s*[1-6]/.test(norm);
+
+  if(hasZoneN) {
+    // ── FORMAT A: EDF-style — "Zone N abo_b0 kwh_b0 abo_b1 kwh_b1" (6 values) ──
+    var edfRe = /Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
+    var edfM, edfFound = false;
+    while((edfM = edfRe.exec(norm)) !== null) {
+      var zn = parseInt(edfM[1]);
+      var aboB0 = pf(edfM[2]), kwhHtB0 = pf(edfM[3]);   // HT then TTC
+      var aboB1 = pf(edfM[4]), kwhB0 = pf(edfM[5]);      // abo B1, kWh B0 TTC
+      // Wait - EDF: "Zone 1 9.87 0.1385 23.29 0.1080 23.29 0.1080"
+      // pos:          1    2     3      4     5     6     7
+      // abo_b0=2(9.87), kwh_b0=3(0.1385), abo_b1=4(23.29), kwh_b1=5(0.1080)
+      var aboB0v = pf(edfM[2]), kwhB0v = pf(edfM[3]);
+      var aboB1v = pf(edfM[4]), kwhB1v = pf(edfM[5]);
+      if(zn===1) {
+        if(aboB0v>5&&aboB0v<50) { d.g_abo_b0=aboB0v; edfFound=true; }
+        if(kwhB0v>0.05&&kwhB0v<0.3) d.g_kwh_b0_z1=kwhB0v;
+        if(aboB1v>5&&aboB1v<50) d.g_abo_b1=aboB1v;
+        if(kwhB1v>0.05&&kwhB1v<0.3) d.g_kwh_b1_z1=kwhB1v;
+      }
+      if(zn>=1&&zn<=6) {
+        if(kwhB0v>0.05&&kwhB0v<0.3) d['g_kwh_b0_z'+zn]=kwhB0v;
+        if(kwhB1v>0.05&&kwhB1v<0.3) d['g_kwh_b1_z'+zn]=kwhB1v;
+      }
     }
-    if(zn >= 1 && zn <= 6) {
-      if(kwhB0z && kwhB0z > 0.05 && kwhB0z < 0.3) d['g_kwh_b0_z'+zn] = kwhB0z;
-      if(kwhB1z && kwhB1z > 0.05 && kwhB1z < 0.3) d['g_kwh_b1_z'+zn] = kwhB1z;
+    if(edfFound) return d;
+
+    // ── FORMAT B: Total-style — T1/T2 sections with "Zone N ht ttc kwhHT kwhTTC" ──
+    // T1 = B0 (cuisine <4MWh), T2 = B1 (chauffage >=4MWh)
+    // Zone 1 may be split: "Zone 1\n<4MWh\nHT TTC kwhHT kwhTTC"
+    // Zones 2-6: "Zone N HT TTC kwhHT kwhTTC" on one line
+    
+    // Find T1 and T2 section boundaries
+    var t1Idx = norm.indexOf('T1');
+    var t2Idx = norm.indexOf('T2');
+    if(t1Idx < 0) t1Idx = norm.indexOf('< 4 MWh');
+    if(t2Idx < 0) t2Idx = norm.indexOf('>= 4 MWh');
+    
+    // Parse "Zone N HT TTC kwhHT kwhTTC" lines (4 values after zone)
+    var zone4Re = /Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
+    var z4M;
+    while((z4M = zone4Re.exec(norm)) !== null) {
+      var zn = parseInt(z4M[1]);
+      var ht = pf(z4M[2]), ttc = pf(z4M[3]), kwhHt = pf(z4M[4]), kwhTtc = pf(z4M[5]);
+      var pos = z4M.index;
+      var isT1 = (t1Idx >= 0 && t2Idx >= 0) ? pos < t2Idx : (ttc < 20);
+      var isT2 = !isT1;
+      if(zn>=1&&zn<=6) {
+        if(isT1) {
+          if(zn===1 && ttc>5&&ttc<50) { d.g_abo_b0 = ttc; d['g_kwh_b0_z1'] = kwhTtc; }
+          if(kwhTtc>0.05&&kwhTtc<0.3) d['g_kwh_b0_z'+zn] = kwhTtc;
+        } else {
+          if(zn===1 && ttc>5&&ttc<50) { d.g_abo_b1 = ttc; d['g_kwh_b1_z1'] = kwhTtc; }
+          if(kwhTtc>0.05&&kwhTtc<0.3) d['g_kwh_b1_z'+zn] = kwhTtc;
+        }
+      }
     }
+
+    // Also parse standalone "HT TTC kwhHT kwhTTC" line right after "Zone 1" (Total zone1)
+    var zone1Re = /Zone\s+1[^\d]*?([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
+    var z1M;
+    while((z1M = zone1Re.exec(norm)) !== null) {
+      var ht1=pf(z1M[1]),ttc1=pf(z1M[2]),kht1=pf(z1M[3]),kttc1=pf(z1M[4]);
+      var pos = z1M.index;
+      var isT1 = (t1Idx>=0&&t2Idx>=0) ? pos<t2Idx : (ttc1<20);
+      if(ht1&&ttc1&&kht1&&kttc1&&ttc1>ht1) {
+        if(isT1) {
+          if(!d.g_abo_b0 && ttc1>5&&ttc1<50) d.g_abo_b0 = ttc1;
+          if(!d.g_kwh_b0_z1 && kttc1>0.05&&kttc1<0.3) d.g_kwh_b0_z1 = kttc1;
+        } else {
+          if(!d.g_abo_b1 && ttc1>5&&ttc1<50) d.g_abo_b1 = ttc1;
+          if(!d.g_kwh_b1_z1 && kttc1>0.05&&kttc1<0.3) d.g_kwh_b1_z1 = kttc1;
+        }
+      }
+    }
+
+    // If we got something, return
+    if(d.g_abo_b0 || d.g_kwh_b0_z1) return d;
   }
 
-  // If Zone N pattern found, return immediately — don't run generic parser
-  if(zoneFound) return d;
-
-  // ── FALLBACK: generic parser for other formats ────────────────
-  // Collect value categories
+  // ── FALLBACK: generic parser for Ohm, Eni, Alterna etc ───────
   var annualAbos = [], monthlyAbos = [], kwhCts = [], kwhEur = [];
-
-  // Find HT/TTC pairs for annual abos
   var pairRe = /(\d{2,3}\.\d{2})\s+(\d{2,3}\.\d{2})/g;
   var m;
   while((m=pairRe.exec(norm))!==null){
     var a=pf(m[1]), b=pf(m[2]);
     if(!a||!b) continue;
-    if(b>a && b>90 && b<700) annualAbos.push(b);
-    else if(b>a && b>8 && b<45) monthlyAbos.push(b);
+    if(b>a&&b>90&&b<700) annualAbos.push(b);
+    else if(b>a&&b>8&&b<45) monthlyAbos.push(b);
   }
-  // Also collect individual annual values
-  var allNums = (norm.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(Boolean);
+  var allNums=(norm.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(Boolean);
   allNums.forEach(function(v){
     if(v>5&&v<25) kwhCts.push(v);
     else if(v>0.05&&v<0.25) kwhEur.push(v);
     else if(v>8&&v<45&&monthlyAbos.indexOf(v)<0) monthlyAbos.push(v);
     else if(v>50&&v<700&&annualAbos.indexOf(v)<0) annualAbos.push(v);
   });
-
-  // Extract abos
   if(annualAbos.length>=4){
     annualAbos.sort(function(a,b){return a-b;});
-    d.g_abo_b0 = annualAbos[1]/12;
-    d.g_abo_b1 = annualAbos[3]/12;
+    d.g_abo_b0=annualAbos[1]/12; d.g_abo_b1=annualAbos[3]/12;
   } else if(annualAbos.length>=2){
     annualAbos.sort(function(a,b){return a-b;});
-    var ratio = annualAbos[annualAbos.length-1] / annualAbos[0];
-    if(ratio > 1.5) {
-      d.g_abo_b0 = annualAbos[0]/12;
-      d.g_abo_b1 = annualAbos[annualAbos.length-1]/12;
-    } else {
-      d.g_abo_b0 = annualAbos[annualAbos.length-1]/12;
-    }
-  } else if(annualAbos.length===1){
-    d.g_abo_b0 = annualAbos[0]/12;
-  } else if(monthlyAbos.length>=2){
+    var ratio=annualAbos[annualAbos.length-1]/annualAbos[0];
+    if(ratio>1.5){d.g_abo_b0=annualAbos[0]/12;d.g_abo_b1=annualAbos[annualAbos.length-1]/12;}
+    else{d.g_abo_b0=annualAbos[annualAbos.length-1]/12;}
+  } else if(annualAbos.length===1){d.g_abo_b0=annualAbos[0]/12;}
+  else if(monthlyAbos.length>=2){
     monthlyAbos.sort(function(a,b){return a-b;});
-    d.g_abo_b0 = monthlyAbos[0];
-    d.g_abo_b1 = monthlyAbos[monthlyAbos.length-1];
-  } else if(monthlyAbos.length===1){
-    d.g_abo_b0 = monthlyAbos[0];
-  }
+    d.g_abo_b0=monthlyAbos[0]; d.g_abo_b1=monthlyAbos[monthlyAbos.length-1];
+  } else if(monthlyAbos.length===1){d.g_abo_b0=monthlyAbos[0];}
 
-  // Extract kWh — cluster by TTC range
-  var ctsB0 = kwhCts.filter(function(v){return v>=13&&v<=18;});
-  var ctsB1 = kwhCts.filter(function(v){return v>10.5&&v<13;});
+  var ctsB0=kwhCts.filter(function(v){return v>=13&&v<=18;});
+  var ctsB1=kwhCts.filter(function(v){return v>10.5&&v<13;});
   var eurPairs=[];
-  for(var i=0;i<kwhEur.length-1;i++){
-    var ratio=kwhEur[i+1]/kwhEur[i];
-    if(ratio>1.1&&ratio<1.6) eurPairs.push(kwhEur[i+1]);
-  }
-
+  for(var i=0;i<kwhEur.length-1;i++){var r=kwhEur[i+1]/kwhEur[i];if(r>1.1&&r<1.6)eurPairs.push(kwhEur[i+1]);}
   if(ctsB0.length>0&&ctsB1.length>0){
-    ctsB0.sort(function(a,b){return b-a;});
-    ctsB1.sort(function(a,b){return a-b;});
-    d.g_kwh_b0_z1 = ctsB0[0]/100;
-    d.g_kwh_b1_z1 = ctsB1[0]/100;
+    ctsB0.sort(function(a,b){return b-a;}); ctsB1.sort(function(a,b){return a-b;});
+    d.g_kwh_b0_z1=ctsB0[0]/100; d.g_kwh_b1_z1=ctsB1[0]/100;
   } else if(eurPairs.length>=2){
     eurPairs.sort(function(a,b){return b-a;});
-    d.g_kwh_b0_z1 = eurPairs[0];
-    d.g_kwh_b1_z1 = eurPairs[eurPairs.length-1];
+    d.g_kwh_b0_z1=eurPairs[0]; d.g_kwh_b1_z1=eurPairs[eurPairs.length-1];
   } else if(kwhEur.length>=2){
     kwhEur.sort(function(a,b){return b-a;});
-    d.g_kwh_b0_z1 = kwhEur[0];
-    d.g_kwh_b1_z1 = kwhEur[kwhEur.length-1];
-  } else if(kwhEur.length===1){
-    d.g_kwh_b0_z1 = kwhEur[0];
-  } else if(kwhCts.length>=2){
+    d.g_kwh_b0_z1=kwhEur[0]; d.g_kwh_b1_z1=kwhEur[kwhEur.length-1];
+  } else if(kwhEur.length===1){d.g_kwh_b0_z1=kwhEur[0];}
+  else if(kwhCts.length>=2){
     kwhCts.sort(function(a,b){return b-a;});
-    d.g_kwh_b0_z1 = kwhCts[0]/100;
-    d.g_kwh_b1_z1 = kwhCts[kwhCts.length-1]/100;
-  } else if(kwhCts.length===1){
-    d.g_kwh_b0_z1 = kwhCts[0]/100;
-  }
-
+    d.g_kwh_b0_z1=kwhCts[0]/100; d.g_kwh_b1_z1=kwhCts[kwhCts.length-1]/100;
+  } else if(kwhCts.length===1){d.g_kwh_b0_z1=kwhCts[0]/100;}
   return d;
 }
 
