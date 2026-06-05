@@ -1503,13 +1503,50 @@ function parseGasTariffs(rawText) {
     d.g_kwh_b0_z1 = kwhCts[0]/100;
   }
 
+
+  // ── EDF-style: "Zone N abo_b0 kwh_b0 abo_b1 kwh_b1" lines ────
+  var zoneRe = /Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
+  var zoneM;
+  var zoneFound = false;
+  while((zoneM = zoneRe.exec(norm)) !== null) {
+    var zn = parseInt(zoneM[1]);
+    var aboB0z = pf(zoneM[2]), kwhB0z = pf(zoneM[3]);
+    var aboB1z = pf(zoneM[4]), kwhB1z = pf(zoneM[5]);
+    if(zn === 1) {
+      // Zone 1 = reference values
+      if(aboB0z && aboB0z > 5 && aboB0z < 50) { d.g_abo_b0 = aboB0z; zoneFound = true; }
+      if(kwhB0z && kwhB0z > 0.05 && kwhB0z < 0.3) d.g_kwh_b0_z1 = kwhB0z;
+      if(aboB1z && aboB1z > 5 && aboB1z < 50) d.g_abo_b1 = aboB1z;
+      if(kwhB1z && kwhB1z > 0.05 && kwhB1z < 0.3) d.g_kwh_b1_z1 = kwhB1z;
+    }
+    // Fill zone-specific kWh fields
+    if(zn >= 1 && zn <= 6) {
+      if(kwhB0z && kwhB0z > 0.05 && kwhB0z < 0.3) d['g_kwh_b0_z'+zn] = kwhB0z;
+      if(kwhB1z && kwhB1z > 0.05 && kwhB1z < 0.3) d['g_kwh_b1_z'+zn] = kwhB1z;
+    }
+  }
+
   return d;
 }
 function applyExtracted(data) {
-  Object.entries(data).forEach(([k,v])=>{
-    const el=document.getElementById(k)||document.getElementById('abo_'+k.split('_').pop()+'_base')||document.getElementById(k);
-    const inp = document.getElementById(k);
-    if(inp){inp.value=v;inp.classList.add('extracted');}
+  Object.keys(data).forEach(function(k) {
+    var inp = document.getElementById(k);
+    if(inp) {
+      var v = data[k];
+      // Format: 2 decimals for abo, 4 for kWh
+      if(typeof v === 'number') {
+        if(k.startsWith('g_abo_') || k.startsWith('abo_')) {
+          inp.value = v.toFixed(2);
+        } else if(k.startsWith('g_kwh_') || k.startsWith('kwh_') || k.startsWith('hp_') || k.startsWith('hc_')) {
+          inp.value = v.toFixed(4);
+        } else {
+          inp.value = v;
+        }
+      } else {
+        inp.value = v;
+      }
+      inp.classList.add('extracted');
+    }
   });
 }
 
