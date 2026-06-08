@@ -1589,11 +1589,15 @@ function sKeydown(e,i) {
   if(e.key==='Escape'){editingSupplier=null;renderSidebar();}
 }
 function deleteSupplier(i) {
-  var list = getSuppliersList();
-  list.splice(i, 1);
-  if(currentEnergy==='elec') suppliers=list; else suppliersGaz=list;
-  if (currentSupplier !== null && currentSupplier >= list.length) currentSupplier = list.length - 1;
-  if (list.length === 0) currentSupplier = null;
+  if(currentEnergy === 'elec') {
+    suppliers.splice(i, 1);
+    if(currentSupplier !== null && currentSupplier >= suppliers.length) currentSupplier = suppliers.length - 1;
+    if(suppliers.length === 0) currentSupplier = null;
+  } else {
+    suppliersGaz.splice(i, 1);
+    if(currentSupplier !== null && currentSupplier >= suppliersGaz.length) currentSupplier = suppliersGaz.length - 1;
+    if(suppliersGaz.length === 0) currentSupplier = null;
+  }
   renderSidebar();
   renderContent();
 }
