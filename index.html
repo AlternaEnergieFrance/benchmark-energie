@@ -456,6 +456,7 @@ function init() {
   try { const sg=localStorage.getItem('benchmark_suppliers_gaz'); if(sg) suppliersGaz=JSON.parse(sg); } catch(e){}
   try { const se=localStorage.getItem('benchmark_suppliers_elec'); if(se) suppliers=JSON.parse(se); } catch(e){}
   try { const sr=localStorage.getItem('benchmark_ref'); if(sr){ var savedRef=JSON.parse(sr); if(savedRef.elec) Object.assign(REF.elec,savedRef.elec); if(savedRef.gas) Object.assign(REF.gas,savedRef.gas); } } catch(e){}
+  try { const sl=localStorage.getItem('benchmark_month_labels'); if(sl) window.monthLabels=JSON.parse(sl); else window.monthLabels={}; } catch(e){ window.monthLabels={}; }
   applyPreload();
   const now = new Date();
   document.getElementById('monthDisplay').textContent =
@@ -642,19 +643,69 @@ function addSupplier() {
 
 function buildMonthBar() {
   var keys = Object.keys(history).sort();
-  if (!keys.length) return '';
+  var enCours = currentMonthKey === null;
+  var enCoursStyle = 'font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;border:1px solid '
+    + (enCours?'var(--accent)':' var(--border)') + ';background:' + (enCours?'var(--accent)':'transparent')
+    + ';color:' + (enCours?'white':'var(--text2)') + ';';
+
   var btns = keys.map(function(k) {
     var active = k === currentMonthKey;
     var border = active ? 'var(--accent)' : 'var(--border)';
     var bg = active ? 'var(--accent)' : 'transparent';
     var col = active ? 'white' : 'var(--text2)';
-    return '<button onclick="loadMonth(' + JSON.stringify(k) + ')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>';
+    return '<button ondblclick="renameMonth(' + JSON.stringify(k) + ')" onclick="loadMonth(' + JSON.stringify(k) + ')" title="Double-clic pour renommer" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>';
   }).join('');
+
   return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">'
     + '<span style="font-size:11px;color:var(--text3);margin-right:4px;">Historique :</span>'
     + btns
-    + '<button onclick="loadMonth(null)" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;">En cours</button>'
+    + '<button onclick="loadMonth(null)" ondblclick="renameEnCours()" title="Double-clic pour renommer" style="' + enCoursStyle + '">En cours</button>'
+    + '<button onclick="nouveauMois()" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;font-weight:600;">+ Nouveau</button>'
     + '</div>';
+}
+
+function renameMonth(key) {
+  var current = getMonthLabel(key);
+  var newLabel = prompt('Renommer ce mois :', current);
+  if(!newLabel || !newLabel.trim() || newLabel.trim()===current) return;
+  if(!window.monthLabels) window.monthLabels = {};
+  monthLabels[key] = newLabel.trim();
+  try{ localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels)); }catch(e){}
+  renderContent();
+}
+
+function renameEnCours() {
+  var current = monthLabels['__en_cours__'] || 'En cours';
+  var newLabel = prompt('Renommer « En cours » :', current);
+  if(!newLabel || !newLabel.trim()) return;
+  if(!window.monthLabels) window.monthLabels = {};
+  monthLabels['__en_cours__'] = newLabel.trim();
+  try{ localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels)); }catch(e){}
+  renderContent();
+}
+
+function nouveauMois() {
+  var name = prompt('Nom du nouveau mois (ex: Juil 2026) :');
+  if(!name || !name.trim()) return;
+  // Create a unique key based on timestamp
+  var key = 'custom-' + Date.now();
+  if(!window.monthLabels) window.monthLabels = {};
+  monthLabels[key] = name.trim();
+  // Initialize with current suppliers/REF data as starting point
+  history[key] = {
+    savedAt: new Date().toISOString(),
+    monthKey: key,
+    suppliers: JSON.parse(JSON.stringify(suppliers)),
+    suppliersGaz: JSON.parse(JSON.stringify(suppliersGaz)),
+    REF: JSON.parse(JSON.stringify(REF))
+  };
+  try{
+    localStorage.setItem('benchmark_history', JSON.stringify(history));
+    localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels));
+  }catch(e){}
+  currentMonthKey = key;
+  renderContent();
+  showToast('✓ Nouveau mois « '+name.trim()+' » créé', 'success');
 }
 
 function renderResults() {
@@ -1862,7 +1913,14 @@ async function calcRefPDF(energy) {
 
 // ── HISTORY ──
 function getMonthKey(date){var d=date||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
-function getMonthLabel(key){var p=key.split('-');var months=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];return months[parseInt(p[1])-1]+' '+p[0];}
+function getMonthLabel(key){
+  if(window.monthLabels && monthLabels[key]) return monthLabels[key];
+  if(!key) return (window.monthLabels && monthLabels['__en_cours__']) || 'En cours';
+  var p=key.split('-');
+  if(key.startsWith('custom-')) return key; // fallback for custom keys
+  var months=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  return months[parseInt(p[1])-1]+' '+p[0];
+}
 function saveCurrentMonth(){
   var key=getMonthKey();
   if(!history[key]) history[key]={savedAt:new Date().toISOString(),monthKey:key,REF:{}};
