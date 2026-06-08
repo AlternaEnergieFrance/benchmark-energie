@@ -365,6 +365,26 @@ const PRELOAD = {
   }
 };
 
+const SUPPLIERS = [
+  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Mint',
+  'Ekwateur','Alpiq','Alterna','Octopus','La Belle Energie','Enercoop','Primeo','Happ-e'
+];
+const SUPPLIERS_GAZ = [
+  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Alterna','Octopus','Happ-e'
+];
+
+let suppliers = SUPPLIERS.map(function(name){ return {
+  name:name, url:'',
+  elec:{data:{}, status:'empty', pdfName:null, decomposed:false}
+};});
+let suppliersGaz = SUPPLIERS_GAZ.map(function(name){ return {
+  name:name, url:'',
+  gas:{data:{}, status:'empty', pdfName:null, decomposed:false}
+};});
+
+function getSuppliersList() { return currentEnergy === 'elec' ? suppliers : suppliersGaz; }
+function setSuppliersList(list) { if(currentEnergy==='elec') suppliers=list; else suppliersGaz=list; }
+
 // ── Apply preloaded data to suppliers on init ─────────────────────
 function applyPreload() {
   // Electricity — suppliers[]
@@ -557,7 +577,8 @@ function renderSidebar() {
   }
   
   const doneFn = s => {
-    const ed = s.elec.status==='done', gd = s.gas.status==='done';
+    const ed = s.elec&&s.elec.status==='done';
+    const gd = s.gas&&s.gas.status==='done';
     if (ed&&gd) return 'done-both';
     if (ed) return 'done-elec';
     if (gd) return 'done-gas';
@@ -580,8 +601,8 @@ function renderSidebar() {
                 : '<div class="s-name">'+s.name+'</div>')
             + '<div class="s-badges">'
             + (s.url ? '<a href="'+s.url+'" target="_blank" onclick="event.stopPropagation()" title="Grille tarifaire" style="font-size:10px;text-decoration:none;opacity:0.7;" tabindex="-1">🔗</a>' : '')
-            + (s.elec.status==='done' ? '<span class="s-badge e">⚡</span>' : '')
-            + (s.gas.status==='done'  ? '<span class="s-badge g">🔥</span>' : '')
+            + (s.elec&&s.elec.status==='done' ? '<span class="s-badge e">⚡</span>' : '')
+            + (s.gas&&s.gas.status==='done' ? '<span class="s-badge g">🔥</span>' : '')
             + '<button class="s-icon-btn" title="Renommer" onclick="event.stopPropagation();startEdit('+i+')" tabindex="-1">✏️</button>'
             + '<button class="s-icon-btn s-del" title="Supprimer" onclick="event.stopPropagation();deleteSupplier('+i+')" tabindex="-1">✕</button>'
             + '</div>'
@@ -1699,7 +1720,7 @@ function computeElecRankings() {
 
   sups.forEach(function(s) {
     if (s.name === SELF) return;
-    if (s.elec.status !== 'done') return;
+    if (!s.elec||s.elec.status !== 'done') return;
     var d = s.elec.data;
     var base = {name:s.name, offer:d.offer||'—', isSelf:false};
     var c6b = cost6b(d), c9b = cost9b(d), c6h = cost6h(d), c9h = cost9h(d);
@@ -1750,7 +1771,7 @@ function computeGasRankings() {
     abo:r.abo_b1, kwh:r.kwh_b1_z1, annuel:vB1, ecart:0});
   sups.forEach(function(s) {
     if (s.name===SELF) return;
-    if (s.gas.status!=='done') return;
+    if (!s.gas||s.gas.status!=='done') return;
     var d = s.gas.data;
     var cb0 = calcGasCost(d,'b0',CONSOS.gas_b0);
     var cb1 = calcGasCost(d,'b1',CONSOS.gas_b1);
