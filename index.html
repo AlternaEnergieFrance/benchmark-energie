@@ -1576,29 +1576,29 @@ function parseGasTariffs(rawText) {
     // Sort by abo size: B0 entries have smaller abo (~54-65), B1 larger (~77-278)
     engieAnnual.sort(function(a,b){return a.ht-b.ht;});
     // B0: two entries with small abo (both ~50-90), take the ones with kwh_ttc ~0.05-0.09
-    var b0entries=engieAnnual.filter(function(e){return e.ht<100;});
-    var b1entries=engieAnnual.filter(function(e){return e.ht>=100;});
+    // B0 entries: both Fourniture and Acheminement have ht<70 (~54-55)
+    // B1 entries: Fourniture ht~77, Acheminement ht~186 (both >70)
+    var b0entries=engieAnnual.filter(function(e){return e.ht<70;});
+    var b1entries=engieAnnual.filter(function(e){return e.ht>=70;});
     if(b0entries.length>=2&&b1entries.length>=2){
       // B0 abo = sum of Fourniture TTC + Acheminement TTC / 12
       var b0aboSum=b0entries.reduce(function(s,e){return s+e.ttc;},0);
       d.g_abo_b0=b0aboSum/12;
-      // B0 kWh = sum of all kwh_ttc components
+      // B0 kWh = Fourniture_kwh + Acheminement_kwh + Obligations_B0_GrA
       var b0kwh=b0entries.reduce(function(s,e){return s+e.kwh_ttc;},0);
-      // Add Obligations B0 (Gr.A <3999kWh): 0.02255
-      var engieObligB0=0.02255;
+      var engieObligB0=0.02255; // Gr.A <3999kWh TTC
       d.g_kwh_b0_z1=+(b0kwh+engieObligB0).toPrecision(5);
       for(var zn=1;zn<=6;zn++) d['g_kwh_b0_z'+zn]=d.g_kwh_b0_z1;
 
-      // B1 abo
+      // B1 abo = Fourniture TTC + Acheminement TTC / 12
       var b1aboSum=b1entries.reduce(function(s,e){return s+e.ttc;},0);
       d.g_abo_b1=b1aboSum/12;
-      // B1 kWh base (fourniture+acheminement): sum of kwh_ttc
+      // B1 kWh = Fourniture_kwh + Acheminement_kwh (both in b1entries)
       var b1kwhBase=b1entries.reduce(function(s,e){return s+e.kwh_ttc;},0);
-      // Add Obligations per zone (Gr.A-F)
+      // Add Obligations per zone (Gr.A-F TTC for 4000-29999kWh)
       var engieObligB1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
       for(var zn=1;zn<=6;zn++)
         d['g_kwh_b1_z'+zn]=+(b1kwhBase+engieObligB1[zn-1]).toPrecision(5);
-      d.g_kwh_b1_z1=d.g_kwh_b1_z1;
       return d;
     }
   }
