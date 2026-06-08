@@ -322,89 +322,89 @@ const PRELOAD = {
     }
   },
   gas: {
-    'Engie': {
-      offer:'GAZ REFERENCE 3 ANS',
-      b0:{abo:12.27, kwh:0.1466},
-      b1:{abo:30.91, kwh:0.1146}
+    'EDF': {
+      offer:'AVANTAGE GAZ 2 ANS',
+      b0:{abo:9.87,  zones:[0.1385,0.1389,0.1375,0.1394,0.1443,0.1476]},
+      b1:{abo:23.29, zones:[0.1080,0.1085,0.1069,0.1089,0.1139,0.1171]}
     },
     'Total Energies': {
       offer:'OFFRE SPECIALE GAZ',
-      b0:{abo:12.27, kwh:0.1538},
-      b1:{abo:28.66, kwh:0.1209}
+      b0:{abo:12.27, zones:[0.1538,0.1547,0.1563,0.1580,0.1605,0.1638]},
+      b1:{abo:28.66, zones:[0.1209,0.1227,0.1251,0.1290,0.1333,0.1393]}
+    },
+    'Engie': {
+      offer:'GAZ REFERENCE 3 ANS',
+      b0:{abo:12.27, zones:[0.1466,0.1466,0.1466,0.1466,0.1466,0.1466]},
+      b1:{abo:30.91, zones:[0.1146,0.1146,0.1146,0.1146,0.1146,0.1146]}
     },
     'Eni Plénitude': {
       offer:'PLENIFIX 1 AN GAZ',
-      b0:{abo:173.88/12, kwh:0.15625},
-      b1:{abo:370.53/12, kwh:0.12378}
+      b0:{abo:173.88/12, zones:[0.15625,0.15625,0.15625,0.15625,0.15625,0.15625]},
+      b1:{abo:370.53/12, zones:[0.12378,0.12378,0.12378,0.12378,0.12378,0.12378]}
     },
     'Ohm': {
       offer:'EXTRA ECO GAZ',
-      b0:{abo:10.95, kwh:0.1351},
-      b1:{abo:27.73, kwh:0.0971}
+      b0:{abo:10.95, zones:[0.1351,0.1351,0.1351,0.1351,0.1351,0.1351]},
+      b1:{abo:27.73, zones:[0.0971,0.0993,0.1029,0.1041,0.1085,0.1118]}
     },
-    'Happ-e': {
-      offer:'GAZ HAPP-E 1 AN',
-      b0:{abo:159.39/12, kwh:0.14116},
-      b1:{abo:482.14/12, kwh:0.10723}
-    },
-    'EDF': {
-      offer:'AVANTAGE GAZ 2 ANS',
-      b0:{abo:9.87, kwh:0.1385},
-      b1:{abo:23.29, kwh:0.1080}
+    'Alterna': {
+      offer:'GAZ ESSENTIEL -5% PRVG',
+      b0:{abo:12.27, zones:[0.1466,0.1466,0.1466,0.1466,0.1466,0.1466]},
+      b1:{abo:30.91, zones:[0.1146,0.1146,0.1146,0.1146,0.1146,0.1146]}
     },
     'Octopus': {
       offer:'GAZ FIXE -2% JUIN 2026',
-      b0:{abo:12.27, kwh:0.1448},
-      b1:{abo:28.66, kwh:0.11402}
+      b0:{abo:12.27, zones:[0.1448,0.1459,0.1472,0.1480,0.1486,0.1485]},
+      b1:{abo:28.66, zones:[0.1140,0.1159,0.1185,0.1199,0.1208,0.1208]}
+    },
+    'Happ-e': {
+      offer:'GAZ HAPP-E 1 AN',
+      b0:{abo:159.39/12, zones:[0.14116,0.14116,0.14116,0.14116,0.14116,0.14116]},
+      b1:{abo:482.14/12, zones:[0.10723,0.10795,0.10867,0.10939,0.11011,0.11083]}
     }
   }
 };
 
 // ── Apply preloaded data to suppliers on init ─────────────────────
 function applyPreload() {
+  // Electricity — suppliers[]
   suppliers.forEach(function(sup) {
-    // Electricity
     var pd = PRELOAD.elec[sup.name];
-    if (pd) {
+    if (pd && Object.keys(sup.elec.data).length === 0) {
       var d = sup.elec.data;
-      if (Object.keys(d).length === 0) {
-        d.offer = pd.offer;
-        ['3','6','9','12','15','18'].forEach(function(k) {
-          var row = pd[k]; if (!row) return;
-          if (row.abo_base) d['abo_'+k+'_base'] = row.abo_base;
-          if (row.kwh_base) d['kwh_'+k+'_base'] = row.kwh_base;
-          if (row.abo_hc)   d['abo_'+k+'_hc']   = row.abo_hc;
-          if (row.kwh_hp)   d['hp_'+k] = row.kwh_hp;
-          if (row.kwh_hc)   d['hc_'+k] = row.kwh_hc;
-        });
-        sup.elec.status = 'done';
-      }
+      d.offer = pd.offer;
+      ['3','6','9','12','15','18'].forEach(function(k) {
+        var row = pd[k]; if (!row) return;
+        if (row.abo_base) d['abo_'+k+'_base'] = row.abo_base;
+        if (row.kwh_base) d['kwh_'+k+'_base'] = row.kwh_base;
+        if (row.abo_hc)   d['abo_'+k+'_hc']   = row.abo_hc;
+        if (row.kwh_hp)   d['hp_'+k] = row.kwh_hp;
+        if (row.kwh_hc)   d['hc_'+k] = row.kwh_hc;
+      });
+      sup.elec.status = 'done';
     }
-    // Gas
+  });
+  // Gas — suppliersGaz[]
+  suppliersGaz.forEach(function(sup) {
     var pg = PRELOAD.gas && PRELOAD.gas[sup.name];
-    if (pg) {
+    if (pg && Object.keys(sup.gas.data).length === 0) {
       var gd = sup.gas.data;
-      if (Object.keys(gd).length === 0) {
-        gd.offer = pg.offer;
-        if (pg.b0) { gd.g_abo_b0 = pg.b0.abo; gd.g_kwh_b0_z1 = pg.b0.kwh; }
-        if (pg.b1) { gd.g_abo_b1 = pg.b1.abo; gd.g_kwh_b1_z1 = pg.b1.kwh; }
-        sup.gas.status = 'done';
+      gd.offer = pg.offer;
+      if(pg.b0) {
+        gd.g_abo_b0 = pg.b0.abo;
+        [1,2,3,4,5,6].forEach(function(z){ if(pg.b0.zones&&pg.b0.zones[z-1]!==undefined) gd['g_kwh_b0_z'+z]=pg.b0.zones[z-1]; });
       }
+      if(pg.b1) {
+        gd.g_abo_b1 = pg.b1.abo;
+        [1,2,3,4,5,6].forEach(function(z){ if(pg.b1.zones&&pg.b1.zones[z-1]!==undefined) gd['g_kwh_b1_z'+z]=pg.b1.zones[z-1]; });
+      }
+      sup.gas.status = 'done';
     }
   });
 }
 
-const SUPPLIERS = [
-  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Mint',
-  'Ekwateur','Alpiq','Alterna','Octopus','La Belle Energie','Enercoop','Primeo','Happ-e'
-];
-
-// Each supplier has elec and gas data buckets
-let suppliers = SUPPLIERS.map(name => ({
-  name, url:'',
-  elec:{data:{}, status:'empty', pdfName:null, decomposed:false},
-  gas:{data:{}, status:'empty', pdfName:null, decomposed:false}
-}));
+function getSuppliersList() { return currentEnergy === 'elec' ? suppliers : suppliersGaz; }
+function setSuppliersList(list) { if(currentEnergy === 'elec') suppliers = list; else suppliersGaz = list; }
 
 // Reference data (Alterna)
 const REF = {
@@ -433,6 +433,8 @@ const CONSOS = {
 // ── INIT ──
 function init() {
   try { const s=localStorage.getItem('benchmark_history'); if(s) history=JSON.parse(s); } catch(e){}
+  try { const sg=localStorage.getItem('benchmark_suppliers_gaz'); if(sg) suppliersGaz=JSON.parse(sg); } catch(e){}
+  try { const se=localStorage.getItem('benchmark_suppliers_elec'); if(se) suppliers=JSON.parse(se); } catch(e){}
   applyPreload();
   const now = new Date();
   document.getElementById('monthDisplay').textContent =
@@ -444,7 +446,8 @@ function init() {
 
 function switchEnergy(e, btn) {
   currentEnergy = e;
-  currentSupplier = null;
+  var list = e === 'elec' ? suppliers : suppliersGaz;
+  currentSupplier = list.length > 0 ? null : null;
   currentTab = 'results'; // Always show ranking when switching energy
   document.querySelectorAll('.energy-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
@@ -601,12 +604,20 @@ function selectSupplier(i) {
 function addSupplier() {
   const name = prompt('Nom du fournisseur :');
   if (!name) return;
-  suppliers.push({name:name.trim(),elec:{data:{},status:'empty',pdfName:null,decomposed:false},gas:{data:{},status:'empty',pdfName:null,decomposed:false}});
+  var newSup = {name:name.trim(), url:''};
+  if(currentEnergy==='elec') {
+    newSup.elec = {data:{},status:'empty',pdfName:null,decomposed:false};
+    suppliers.push(newSup);
+    currentSupplier = suppliers.length - 1;
+  } else {
+    newSup.gas = {data:{},status:'empty',pdfName:null,decomposed:false};
+    suppliersGaz.push(newSup);
+    currentSupplier = suppliersGaz.length - 1;
+  }
   renderSidebar();
-  selectSupplier(suppliers.length-1);
+  renderContent();
 }
 
-// ── CONTENT ──
 function buildMonthBar() {
   var keys = Object.keys(history).sort();
   if (!keys.length) return '';
@@ -673,7 +684,11 @@ function showTab(tab, btn) {
 // ── ENTRY FORM ──
 function renderEntry() {
   if (currentSupplier===null) return `<div class="empty-state"><div class="empty-icon">←</div><div class="empty-text">Sélectionnez un fournisseur</div><div class="empty-hint">dans la liste à gauche</div></div>`;
-  const s = suppliers[currentSupplier];
+  const s = getSuppliersList()[currentSupplier];
+  // Ensure the energy bucket exists
+  if(!s[currentEnergy]) {
+    s[currentEnergy] = {data:{}, status:'empty', pdfName:null, decomposed:false};
+  }
   const bucket = s[currentEnergy];
   const d = bucket.data;
   const isElec = currentEnergy==='elec';
@@ -961,7 +976,11 @@ function set(id,val){ const el=document.getElementById(id); if(el)el.textContent
 // ── SAVE ──
 function saveSupplier(e) {
   e.preventDefault();
-  const s = suppliers[currentSupplier];
+  const s = getSuppliersList()[currentSupplier];
+  // Ensure the energy bucket exists
+  if(!s[currentEnergy]) {
+    s[currentEnergy] = {data:{}, status:'empty', pdfName:null, decomposed:false};
+  }
   const bucket = s[currentEnergy];
   const d = {};
   const isDecomposed = bucket.decomposed||false;
@@ -1549,14 +1568,15 @@ function sKeydown(e,i) {
   if(e.key==='Escape'){editingSupplier=null;renderSidebar();}
 }
 function deleteSupplier(i) {
-  suppliers.splice(i, 1);
-  if (currentSupplier !== null && currentSupplier >= suppliers.length) currentSupplier = suppliers.length - 1;
-  if (suppliers.length === 0 || currentSupplier < 0) currentSupplier = null;
+  var list = getSuppliersList();
+  list.splice(i, 1);
+  if(currentEnergy==='elec') suppliers=list; else suppliersGaz=list;
+  if (currentSupplier !== null && currentSupplier >= list.length) currentSupplier = list.length - 1;
+  if (list.length === 0) currentSupplier = null;
   renderSidebar();
-  renderResults();
+  renderContent();
 }
 
-// ── REF PDF ──
 function storeRefFile(event,energy) {
   var file=event.target.files[0]; if(!file) return;
   pendingRefFile[energy]=file; renderSidebar();
@@ -1598,8 +1618,16 @@ function getMonthKey(date){var d=date||new Date();return d.getFullYear()+'-'+Str
 function getMonthLabel(key){var p=key.split('-');var months=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];return months[parseInt(p[1])-1]+' '+p[0];}
 function saveCurrentMonth(){
   var key=getMonthKey();
-  history[key]={savedAt:new Date().toISOString(),monthKey:key,suppliers:JSON.parse(JSON.stringify(suppliers)),REF:JSON.parse(JSON.stringify(REF))};
-  try{localStorage.setItem('benchmark_history',JSON.stringify(history));}catch(e){}
+  if(!history[key]) history[key]={savedAt:new Date().toISOString(),monthKey:key,REF:{}};
+  history[key].savedAt=new Date().toISOString();
+  history[key].suppliers=JSON.parse(JSON.stringify(suppliers));
+  history[key].suppliersGaz=JSON.parse(JSON.stringify(suppliersGaz));
+  history[key].REF=JSON.parse(JSON.stringify(REF));
+  try{
+    localStorage.setItem('benchmark_history',JSON.stringify(history));
+    localStorage.setItem('benchmark_suppliers_elec',JSON.stringify(suppliers));
+    localStorage.setItem('benchmark_suppliers_gaz',JSON.stringify(suppliersGaz));
+  }catch(e){}
   showToast('✓ Benchmark '+getMonthLabel(key)+' sauvegardé','success');
   renderContent();
 }
@@ -1613,7 +1641,14 @@ function deleteMonth(key){
   renderContent();
 }
 function getPrevMonthKey(key){var keys=Object.keys(history).sort();var idx=keys.indexOf(key);return idx>0?keys[idx-1]:null;}
-function getActiveSuppliers(){return (currentMonthKey&&history[currentMonthKey])?history[currentMonthKey].suppliers:suppliers;}
+function getActiveSuppliers(){
+  var list = getSuppliersList();
+  if(currentMonthKey && history[currentMonthKey]) {
+    var key = currentEnergy==='elec' ? 'suppliers' : 'suppliersGaz';
+    return history[currentMonthKey][key] || list;
+  }
+  return list;
+}
 function getActiveREF(energy){return (currentMonthKey&&history[currentMonthKey])?history[currentMonthKey].REF[energy]:REF[energy];}
 
 // ── RANKING HELPERS ──
@@ -1855,34 +1890,52 @@ function dl(csv,name){var b=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'
 
 // ── EXPORT PDF ──
 function lancerExportPDF() {
-  // Add print-only style, trigger print, then remove
+  var isElec = currentEnergy === 'elec';
+  var accentHex = isElec ? '#00514A' : '#C05A00';
+  var cleanTitle = 'Benchmark Alterna Energie France — ' + (isElec ? 'Électricité' : 'Gaz');
+  var monthLabel = currentMonthKey ? getMonthLabel(currentMonthKey) : new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+
+  // Inject print style
   var style = document.createElement('style');
   style.id = 'print-style';
   style.textContent = [
     '@media print {',
     '  .header, .sidebar, .tabs, .save-btn, .pdf-btn, .btn-export, .month-bar { display:none!important; }',
-    '  .main { display:block!important; }',
-    '  .content { padding:0!important; }',
+    '  .main { display:block!important; margin:0!important; }',
+    '  .content { padding:0!important; margin:0!important; }',
     '  body { background:white!important; }',
-    '  @page { margin:1.5cm; size:A4 landscape; }',
+    '  #print-header { display:block!important; }',
+    '  .results-header { display:none!important; }',
+    '  .segment-label { font-size:9px!important; margin:6px 0 2px!important; }',
+    '  table { font-size:9px!important; }',
+    '  th, td { padding:3px 5px!important; }',
+    '  @page { margin:0.8cm; size:A4 landscape; }',
     '}'
   ].join('\n');
   document.head.appendChild(style);
-  
-  // Switch to results tab first
-  var wasTab = currentTab;
-  if(currentTab !== 'results') {
-    showTab('results', document.querySelector('.tab:last-child'));
-  }
-  
+
+  // Inject a print-only header
+  var hdr = document.createElement('div');
+  hdr.id = 'print-header';
+  hdr.style.cssText = 'display:none;margin-bottom:8px;padding-bottom:6px;border-bottom:3px solid '+accentHex+';display:flex;justify-content:space-between;align-items:center;';
+  hdr.innerHTML = '<div style="font-size:16px;font-weight:700;color:'+accentHex+';">'+cleanTitle+'</div>'
+    + '<div style="font-size:9px;color:#999;">'+monthLabel+' · Généré le '+new Date().toLocaleDateString('fr-FR')+'</div>';
+  document.body.insertBefore(hdr, document.body.firstChild);
+
+  // Switch to results tab
+  if(currentTab !== 'results') showTab('results', document.querySelector('.tab:last-child'));
+
   setTimeout(function() {
     window.print();
     setTimeout(function() {
       var s = document.getElementById('print-style');
       if(s) s.parentNode.removeChild(s);
+      var h = document.getElementById('print-header');
+      if(h) h.parentNode.removeChild(h);
     }, 1000);
   }, 300);
 }
+
 
 function exportPDF() { lancerExportPDF(); }
 
