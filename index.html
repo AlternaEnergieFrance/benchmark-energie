@@ -590,7 +590,7 @@ function renderSidebar() {
     <div>
       <div class="section-label">Fournisseurs</div>
       <div class="supplier-list" id="supplierList">
-        ${suppliers.map((s,i) => {
+        ${getSuppliersList().map((s,i) => {
           const dc = doneFn(s);
           const isActive = currentSupplier===i;
           const isEditing = editingSupplier===i;
