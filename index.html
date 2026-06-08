@@ -1567,10 +1567,13 @@ function parseGasTariffs(rawText) {
   var engieAnnual=[];
   // Find annual abo pairs (50-700 range with HT/TTC pair)
   var annRe=/\b(\d{2,3}\.\d{2})\s+(\d{2,3}\.\d{2})\s+([\d.]+)\s+([\d.]+)/g; var am;
+  var seenHt={};
   while((am=annRe.exec(norm))!==null){
     var ht=pf(am[1]),ttc=pf(am[2]),kht=pf(am[3]),kttc=pf(am[4]);
-    if(ht&&ttc&&ttc>ht&&ht>40&&ht<700&&kttc&&kttc>0.01&&kttc<0.15)
+    if(ht&&ttc&&ttc>ht&&ht>40&&ht<700&&kttc&&kttc>0.01&&kttc<0.15&&!seenHt[ht]){
+      seenHt[ht]=true;
       engieAnnual.push({ht:ht,ttc:ttc,kwh_ht:kht,kwh_ttc:kttc});
+    }
   }
   if(engieAnnual.length>=4){
     // Sort by abo size: B0 entries have smaller abo (~54-65), B1 larger (~77-278)
