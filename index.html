@@ -768,8 +768,8 @@ function renderEntry() {
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
     <span style="font-size:11px;color:var(--text3);white-space:nowrap;">🔗 Lien grille tarifaire :</span>
-    <input type="url" id="f_url" value="${suppliers[currentSupplier].url||''}" placeholder="https://..." style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:var(--mono);background:white;color:var(--text);outline:none;" oninput="suppliers[currentSupplier].url=this.value" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-    ${suppliers[currentSupplier].url ? '<a href="'+suppliers[currentSupplier].url+'" target="_blank" style="font-size:11px;padding:5px 10px;background:var(--accent);color:white;border-radius:5px;text-decoration:none;white-space:nowrap;">Ouvrir ↗</a>' : ''}
+    <input type="url" id="f_url" value="${getSuppliersList()[currentSupplier].url||''}" placeholder="https://..." style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:var(--mono);background:white;color:var(--text);outline:none;" oninput="getSuppliersList()[currentSupplier].url=this.value" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+    ${getSuppliersList()[currentSupplier].url ? '<a href="'+getSuppliersList()[currentSupplier].url+'" target="_blank" style="font-size:11px;padding:5px 10px;background:var(--accent);color:white;border-radius:5px;text-decoration:none;white-space:nowrap;">Ouvrir ↗</a>' : ''}
   </div>
   <div class="extract-bar">
     <div><div class="extract-label">📄 Extraction automatique</div><div class="extract-hint">PDF ou coller du texte (tableau site web, tarifs copiés…)</div></div>
@@ -930,7 +930,7 @@ function mrkE(id) {
 
 function autoSaveField() {
   if (currentSupplier === null) return;
-  var sup = suppliers[currentSupplier];
+  var sup = getSuppliersList()[currentSupplier];
   var d = sup[currentEnergy].data;
   var isElec = currentEnergy === 'elec';
   if (!isElec) return;
@@ -951,7 +951,7 @@ function autoSaveField() {
   var resEl = document.getElementById('tabResults');
   if (resEl && resEl.style.display !== 'none') renderResults();
 }
-function setDecomposed(v) { if(currentSupplier!==null){suppliers[currentSupplier][currentEnergy].decomposed=v; document.getElementById('tabEntry').innerHTML=renderEntry();} }
+function setDecomposed(v) { if(currentSupplier!==null){getSuppliersList()[currentSupplier][currentEnergy].decomposed=v; document.getElementById('tabEntry').innerHTML=renderEntry();} }
 
 function rcBase(k) {
   const fa=v('df_ab_'+k+'_b'), fk=v('df_kw_'+k+'_b'), aa=v('da_ab_'+k+'_b'), ak=v('da_kw_'+k+'_b'), ok=v('do_kw_'+k+'_b');
@@ -960,7 +960,7 @@ function rcBase(k) {
   set('tt_kw_'+k+'_b', tk>0?tk.toFixed(4)+' €/kWh':'—');
   // Save back to supplier data so ranking updates
   if (currentSupplier!==null) {
-    var d=suppliers[currentSupplier].elec.data;
+    var d=getSuppliersList()[currentSupplier].elec.data;
     if(ta>0){d['abo_'+k+'_base']=Math.round(ta*100)/100;}
     if(tk>0){d['kwh_'+k+'_base']=Math.round(tk*10000)/10000;}
     renderResults();
@@ -978,7 +978,7 @@ function rcHC(k) {
   set('tt_hc_'+k,tc>0?tc.toFixed(4)+' €/kWh':'—');
   // Save back to supplier data so ranking updates
   if (currentSupplier!==null) {
-    var d=suppliers[currentSupplier].elec.data;
+    var d=getSuppliersList()[currentSupplier].elec.data;
     if(ta>0){d['abo_'+k+'_hc']=Math.round(ta*100)/100;}
     if(tp>0){d['hp_'+k]=Math.round(tp*10000)/10000;}
     if(tc>0){d['hc_'+k]=Math.round(tc*10000)/10000;}
@@ -1070,7 +1070,7 @@ async function handlePDF(event) {
   try {
     const text = await extractPDFText(file);
     const extracted = currentEnergy==='elec'?parseElecTariffs(text):parseGasTariffs(text);
-    suppliers[currentSupplier][currentEnergy].pdfName = file.name;
+    getSuppliersList()[currentSupplier][currentEnergy].pdfName = file.name;
     if (Object.keys(extracted).length>0) {
       applyExtracted(extracted);
       showToast('✓ '+Object.keys(extracted).length+' valeurs extraites','success');
@@ -1124,6 +1124,7 @@ function parseElecTariffs(rawText) {
   var linesS = rawSplit.split('\n').map(function(l){return l.trim();}).filter(Boolean);
   var d = {};
   var KVAS = ['3','6','9','12','15','18','24','30','36'];
+  var STD_KVAS = new Set([3,6,9,12,15,18,24,30,36]); // standard kVAs only (ignore Tempo 4,5,7,8...)
   var ALL_KVA = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36]);
   var isAbo  = function(v){ return v && 8<v && v<80; };
   var isAboA = function(v){ return v && 80<v && v<800; };
@@ -1136,30 +1137,16 @@ function parseElecTariffs(rawText) {
   function gn(l){ return l.match(/[\d]+\.[\d]+/g)||[]; }
   function gnf(l){ var m=gn(l); var r=[]; for(var i=0;i<m.length;i++){var v=sf(m[i]); if(v!==null)r.push(v);} return r; }
 
-  // Detect Ohm-style (non-standard kVAs in bare rows)
-  var ohm = false;
-  for(var li=0;li<lines.length&&!ohm;li++){
-    if(/[a-zA-Z]/.test(lines[li])) continue;
-    var m0=lines[li].match(/^(\d+)\s+[\d.]+\s+[\d.]+/);
-    if(m0){ var k0=parseInt(m0[1]); if(k0>=1&&k0<=36&&![3,6,9,12,15,18,24,30,36].includes(k0)) ohm=true; }
-  }
-
   // ── PASS 1: kVA rows ──────────────────────────────────────────
   for(var li=0;li<lines.length;li++){
     var line=lines[li];
-    var segs4=[]; var re4=/([\.\d]+)\s*k[Vv][Aa]\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g; var m4;
-    while((m4=re4.exec(line))!==null) segs4.push(m4);
-    var segs2=[]; var re2=/([\.\d]+)\s*k[Vv][Aa]\s+([\d.]+)\s+([\d.]+)(?![\s\d.])/g; var m2;
-    while((m2=re2.exec(line))!==null) segs2.push(m2);
-    var processed={};
-    // Handle Total dual-column: "3 kVA abo1 abo2 kwh1 kwh2 6 kVA abo3 abo4 kwh3 kwh4 kwh5 kwh6"
-    // Find ALL kVA segments on this line
-    var reAll=/(\d+)\s*k[Vv][Aa]\s+([\d.]+)\s+([\d.]+)(?:\s+([\d.]+))?(?:\s+([\d.]+))?(?:\s+([\d.]+))?(?:\s+([\d.]+))?/g; var mAll;
-    var allSegs=[];
+    var allSegs=[]; var reAll=/([\d]+)\s*k[Vv][Aa]\s+([\d.]+)\s+([\d.]+)(?:\s+([\d.]+))?(?:\s+([\d.]+))?(?:\s+([\d.]+))?(?:\s+([\d.]+))?/g; var mAll;
     while((mAll=reAll.exec(line))!==null) allSegs.push(mAll);
     for(var si=0;si<allSegs.length;si++){
-      var seg=allSegs[si]; var k=seg[1]; if(!KVAS.includes(k)) continue;
-      processed[k]=true;
+      var seg=allSegs[si]; var kNum=parseInt(seg[1]); var k=String(kNum);
+      // ONLY process standard kVAs (3,6,9,12,15,18,24,30,36) — ignore Tempo kVAs
+      if(!STD_KVAS.has(kNum)) continue;
+      if(!KVAS.includes(k)) continue;
       var a=parseFloat(seg[2]),b=parseFloat(seg[3]);
       var c=seg[4]?parseFloat(seg[4]):null, e=seg[5]?parseFloat(seg[5]):null;
       var f=seg[6]?parseFloat(seg[6]):null, g=seg[7]?parseFloat(seg[7]):null;
@@ -1170,194 +1157,175 @@ function parseElecTariffs(rawText) {
         }
       } else if(isAbo(a)){
         var abo=ttc(a,b);
-        if(c&&isKwh(c)){ // base row with kWh
+        if(c&&isKwh(c)){
           if(!d['abo_'+k+'_base']){d['abo_'+k+'_base']=abo; d['kwh_'+k+'_base']=ttc(c,e);}
-        } else if(c&&isHP(c)&&f&&isHC(f)){ // HC row: abo hp hc
+        } else if(c&&isHP(c)&&f&&isHC(f)){
           if(!d['abo_'+k+'_hc']){d['abo_'+k+'_hc']=abo; d['hp_'+k]=ttc(c,e); d['hc_'+k]=ttc(f,g);}
-        } else if(!c){ // just abo pair
+        } else if(!c){
           if(!d['abo_'+k+'_base']) d['abo_'+k+'_base']=abo;
           else if(!d['abo_'+k+'_hc']&&Math.abs(abo-(d['abo_'+k+'_base']||0))>0.05) d['abo_'+k+'_hc']=abo;
         }
       }
     }
-    if(allSegs.length>0) continue;
-    // segs2 fallback
-    for(var si=0;si<segs2.length;si++){
-      var seg=segs2[si]; var k=seg[1]; if(!KVAS.includes(k)||processed[k]) continue;
-      var a=parseFloat(seg[2]),b=parseFloat(seg[3]);
-      var abo2=isAboA(a)?ttc(a,b)/12:ttc(a,b);
-      if(!isAbo(abo2)) continue;
-      if(!d['abo_'+k+'_base']) d['abo_'+k+'_base']=abo2;
-      else if(!d['abo_'+k+'_hc']&&Math.abs(abo2-d['abo_'+k+'_base'])>0.05) d['abo_'+k+'_hc']=abo2;
-    }
   }
 
-  // ── Eni accumulation ──────────────────────────────────────────
-  var eniK=null; var eniBuf=[];
-  for(var li=0;li<lines.length;li++){
-    var line=lines[li];
-    var mEni=line.match(/^(\d+)\s*k[Vv][Aa]$/);
-    if(mEni){eniK=mEni[1]; eniBuf=[]; continue;}
-    if(!eniK) continue;
-    if(/[a-zA-Z]{5,}/.test(line)){eniK=null;eniBuf=[];continue;}
-    eniBuf=eniBuf.concat(gnf(line));
-    if(eniBuf.length>=10){
-      if(isAboA(eniBuf[0])){
-        var aboM=ttc(eniBuf[0],eniBuf[1])/12;
-        if(isAbo(aboM)&&!d['abo_'+eniK+'_base']){d['abo_'+eniK+'_base']=aboM; var kw=ttc(eniBuf[2],eniBuf[3]); if(isKwh(kw))d['kwh_'+eniK+'_base']=kw;}
-        var abo2=ttc(eniBuf[4],eniBuf[5])/12;
-        if(isAbo(abo2)&&!d['abo_'+eniK+'_hc']){
-          d['abo_'+eniK+'_hc']=abo2;
-          var hp=ttc(eniBuf[6],eniBuf[7]),hcv=ttc(eniBuf[8],eniBuf[9]);
-          if(isHP(hp))d['hp_'+eniK]=hp; if(isHC(hcv))d['hc_'+eniK]=hcv;
-        }
-      }
-      eniK=null; eniBuf=[];
-    } else if(eniBuf.length>=2&&!isAboA(eniBuf[0])){ eniK=null; eniBuf=[]; }
-  }
-
-  // ── Bare rows ─────────────────────────────────────────────────
-  for(var li=0;li<lines.length;li++){
-    var line=lines[li];
-    if(/k[Vv][Aa]/.test(line)) continue;
-    var nv=gnf(line);
-    var mBare=line.match(/^(3|6|9|12|15|18|24|30|36)\s+/);
-    if(!mBare||nv.length<2) continue;
-    var k=mBare[1]; var a=nv[0],b=nv[1],c=nv[2]||null,e=nv[3]||null,f=nv[4]||null;
-    if(ohm){
-      if(isAbo(a)&&isAbo(b)){ var abo=ttc(a,b); if(!d['abo_'+k+'_base'])d['abo_'+k+'_base']=abo; else if(!d['abo_'+k+'_hc'])d['abo_'+k+'_hc']=abo; }
-    } else {
-      if(isAbo(a)&&isKwhC(b)&&(!c||!isKwhC(c))){
-        if(!d['abo_'+k+'_base']){d['abo_'+k+'_base']=a; d['kwh_'+k+'_base']=b/100;}
-      } else if(isAbo(a)&&isKwhC(b)&&c&&isKwhC(c)){
-        if(!d['abo_'+k+'_hc']){d['abo_'+k+'_hc']=a; d['hp_'+k]=b/100; d['hc_'+k]=c/100;}
-      } else if(isAbo(a)&&isKwh(b)){
-        var oldB=d['abo_'+k+'_base']||0;
-        if(!oldB||a>oldB){
-          d['abo_'+k+'_base']=a; d['kwh_'+k+'_base']=b;
-          if(c&&isAbo(c)&&e&&isHP(e)){d['abo_'+k+'_hc']=c; d['hp_'+k]=e; if(f&&isHC(f))d['hc_'+k]=f;}
-        }
-      }
-    }
-  }
-
-  // ── Octopus / Alpiq anchors ───────────────────────────────────
-  if(!d['abo_6_base']){
-    var kvaBuf=null; var aboBuf=[];
-    for(var li=0;li<lines.length;li++){
-      var line=lines[li]; if(/[a-zA-Z]{4,}/.test(line)) continue;
-      var nv=gnf(line);
-      if(nv.length===1){
-        var vv=nv[0];
-        if(vv===Math.floor(vv)&&vv>=1&&vv<=36){kvaBuf=String(Math.floor(vv)); aboBuf=[]; continue;}
-        if(kvaBuf&&isAbo(vv)){
-          aboBuf.push(vv);
-          if(aboBuf.length===2){
-            var abo=ttc(aboBuf[0],aboBuf[1]);
-            if(KVAS.includes(kvaBuf)){if(!d['abo_'+kvaBuf+'_base'])d['abo_'+kvaBuf+'_base']=abo; else if(!d['abo_'+kvaBuf+'_hc'])d['abo_'+kvaBuf+'_hc']=abo;}
-            kvaBuf=null; aboBuf=[];
-          }
-        } else if(kvaBuf){kvaBuf=null; aboBuf=[];}
-      }
-    }
-  }
-  if(!d['abo_6_base']){
-    var singles=[];
-    for(var li=0;li<lines.length;li++){
-      if(/[a-zA-Z]/.test(lines[li])) continue;
-      var nv=gnf(lines[li]); if(nv.length===1&&isAbo(nv[0])) singles.push(nv[0]);
-    }
-    var anchors={'15.65':'6','19.56':'9','23.32':'12','26.84':'15','30.49':'18','12.03':'3'};
-    Object.keys(anchors).forEach(function(target){
-      var kk=anchors[target]; var t=parseFloat(target); var best=null,bestDiff=999;
-      singles.forEach(function(v){ if(Math.abs(v-t)<0.15&&Math.abs(v-t)<bestDiff){bestDiff=Math.abs(v-t);best=v;} });
-      if(best){if(!d['abo_'+kk+'_base'])d['abo_'+kk+'_base']=best; if(!d['abo_'+kk+'_hc'])d['abo_'+kk+'_hc']=best;}
-    });
-  }
-  if(!d['abo_6_base']){
-    var idx2=rawNorm.indexOf('Tarif TTC'); if(idx2>=0){
-      var ps=rawNorm.substring(idx2); var rePrimeo=/(3|6|9|12|15|18|24|30|36)\s*k[Vv][Aa]\s+([\d.]+)/g; var mp;
-      while((mp=rePrimeo.exec(ps))!==null){ var kk=mp[1],abo=parseFloat(mp[2]); if(isAbo(abo)){if(!d['abo_'+kk+'_base'])d['abo_'+kk+'_base']=abo; if(!d['abo_'+kk+'_hc'])d['abo_'+kk+'_hc']=abo;} }
-    }
-  }
-
-  // ── PASS 2: kWh ───────────────────────────────────────────────
-  var prevKwh=null; var ctsBuf=[]; var bKwhTtc=null;
+  // ── PASS 2: kWh lines ─────────────────────────────────────────
+  // Collect kWh values per kVA group
+  // Strategy: detect multiple kWh values and assign to correct kVA groups
+  var prevKwh=null; var bKwhTtc=null; var kwhByGroup={};
+  // Groups: small (3-6kVA) and large (9-36kVA) often have different kWh
+  
   for(var li=0;li<linesS.length;li++){
     var line=linesS[li];
-    if(/[\d]+\s*k[Vv][Aa]/.test(line)){prevKwh=null;ctsBuf=[];continue;}
-    if(/^\d+\s+\d/.test(line)){var mb=line.match(/^(\d+)\s+([\d.]+)/); if(mb&&parseInt(mb[1])<=36&&isAbo(parseFloat(mb[2]))){prevKwh=null;ctsBuf=[];continue;}}
-    var nv=gnf(line); if(!nv.length){prevKwh=null;ctsBuf=[];continue;}
+    if(/[\d]+\s*k[Vv][Aa]/.test(line)){prevKwh=null;continue;}
+    var nv=gnf(line); if(!nv.length){prevKwh=null;continue;}
     var kwhV=nv.filter(isKwh); var ctsV=nv.filter(isKwhC);
+
     if(nv.length>=6&&kwhV.length>=4){
+      // Alpiq-style: [TRV_HT, TRV_TTC, Alpiq_TTC, Alpiq_HC_TTC, ...]
       var r01=nv[1]/nv[0];
       if(r01>1.1&&r01<1.85){
-        var offer=nv[2],offerHC=nv[3];
-        if(isKwh(offer)&&!d['kwh_6_base']){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=offer;}); bKwhTtc=offer; }
-        if(isHP(offer)&&!d['hp_6']) KVAS.forEach(function(kk){d['hp_'+kk]=offer;});
-        if(isHC(offerHC)&&!d['hc_6']) KVAS.forEach(function(kk){d['hc_'+kk]=offerHC;});
+        // Check if this is barred/TRV row: if all values are in barred sequence
+        // Alpiq: nv[0]=TRV_HT, nv[1]=TRV_TTC, nv[2]=Alpiq_base_TTC, nv[3]=Alpiq_HP_TTC, nv[4]=Alpiq_HC_TTC?
+        // From PDF: "0.141200 0.206460 0.186127 0.143359 0.124256 0.088616"
+        // nv[0]=0.1412(TRV_HT_3-6), nv[1]=0.2065(TRV_TTC_3-6), nv[2]=0.1861(Alpiq_base_3-6?), 
+        // nv[3]=0.1434, nv[4]=0.1243, nv[5]=0.0886
+        // Actually Alpiq has TWO kWh groups on one line for base option
+        // Row 1: "0.141200 0.206460 0.186127 0.143359 0.124256 0.088616"
+        //   = TRV_HT_36kVA TRV_TTC_36kVA Alpiq_base_6kVA? Alpiq_base_9kVA? HP? HC?
+        // Too complex - use the position-based approach:
+        // For Alpiq base: take position [2] (first non-TRV value)
+        var alpiqBase = nv[2];
+        var alpiqBase9 = nv[3]; // may be different for 9+ kVA
+        if(isKwh(alpiqBase)&&!d['kwh_6_base']){
+          // Alpiq has same base kWh for 3-6kVA, different for 9+kVA
+          // nv[2] = 3-6kVA base, nv[3] could be 9-18kVA base if different
+          ['3','6'].forEach(function(k){ if(!d['kwh_'+k+'_base']) d['kwh_'+k+'_base']=alpiqBase; });
+          if(isKwh(alpiqBase9)&&Math.abs(alpiqBase9-alpiqBase)>0.001){
+            ['9','12','15','18','24','30','36'].forEach(function(k){ if(!d['kwh_'+k+'_base']) d['kwh_'+k+'_base']=alpiqBase9; });
+          } else {
+            KVAS.forEach(function(k){ if(!d['kwh_'+k+'_base']) d['kwh_'+k+'_base']=alpiqBase; });
+          }
+          bKwhTtc=alpiqBase;
+        }
+        // Alpiq HP/HC: look for HP in range 0.17-0.20 (non-barred)
+        var hpCand=nv.filter(function(v){return v>0.17&&v<0.22&&v!==nv[1];});
+        var hcCand=nv.filter(function(v){return v>0.10&&v<0.16;});
+        if(hpCand.length&&!d['hp_6']) KVAS.forEach(function(k){d['hp_'+k]=hpCand[0];});
+        if(hcCand.length&&!d['hc_6']) KVAS.forEach(function(k){d['hc_'+k]=hcCand[0];});
       } else {
         var bv=ttc(nv[0],nv[1]),hpv=ttc(nv[2],nv[3]),hcv=ttc(nv[4],nv[5]);
         if(isKwh(bv)&&isHP(hpv)&&isHC(hcv)&&!d['kwh_6_base']){
           KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=bv; if(!d['hp_'+kk])d['hp_'+kk]=hpv; if(!d['hc_'+kk])d['hc_'+kk]=hcv;}); bKwhTtc=bv;
         }
       }
-      prevKwh=null; ctsBuf=[];
+      prevKwh=null;
     } else if(kwhV.length===4){
       var hp=ttc(kwhV[0],kwhV[1]),hcv=ttc(kwhV[2],kwhV[3]);
       if(hp>0.15&&isHP(hp)&&isHC(hcv)&&!d['hp_6']) KVAS.forEach(function(kk){if(!d['hp_'+kk])d['hp_'+kk]=hp; if(!d['hc_'+kk])d['hc_'+kk]=hcv;});
-      prevKwh=null; ctsBuf=[];
+      prevKwh=null;
     } else if(kwhV.length===3){
+      // Mint HP/HC line: "HT HP HT HC TTC HP TTC HC" but as 3 values?
+      // Actually Mint: "0.1257 0.1878 0.0896 0.1446" = HT_HP HT_HC TTC_HP TTC_HC
       var hpv=kwhV[1]; if(isHP(hpv)&&!d['hp_6']) KVAS.forEach(function(kk){d['hp_'+kk]=hpv;});
-      prevKwh=null; ctsBuf=[];
+      prevKwh=null;
     } else if(kwhV.length===2){
-      var v0=kwhV[0],v1=kwhV[1],kw;
-      if(v0>v1){ if(v1<0.160){prevKwh=null;ctsBuf=[];continue;} kw=v1; var cur=d['kwh_6_base']||0; if(!cur||Math.abs(kw-cur)>0.0001){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=kw;}); bKwhTtc=kw; }
-      } else { kw=ttc(v0,v1); if(!d['kwh_6_base']){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=kw;}); bKwhTtc=kw; } else if(isHP(kw)&&!d['hp_6']&&(!bKwhTtc||kw>bKwhTtc*1.02)) KVAS.forEach(function(kk){d['hp_'+kk]=kw;}); }
-      prevKwh=null; ctsBuf=[];
-    } else if(kwhV.length===1){
-      var kw=kwhV[0];
-      if(prevKwh!==null&&Math.abs(kw-prevKwh)>0.001){
-        var kSm=Math.min(kw,prevKwh),kLg=Math.max(kw,prevKwh),ratio=kSm>0?kLg/kSm:999;
-        if(ratio<1.2||ratio>1.65){prevKwh=kw; continue;}
-        var kTTC=kLg, skipHp=bKwhTtc&&kTTC<bKwhTtc*1.05&&kTTC!==bKwhTtc;
-        if(!d['kwh_6_base']&&!skipHp){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=kTTC;}); bKwhTtc=kTTC; }
-        else if(isHP(kTTC)&&!d['hp_6']&&!skipHp) KVAS.forEach(function(kk){d['hp_'+kk]=kTTC;});
-        else if(isHC(kTTC)&&d['hp_6']&&!d['hc_6']) KVAS.forEach(function(kk){d['hc_'+kk]=kTTC;});
-        prevKwh=null;
-      } else { prevKwh=kw; }
-      ctsBuf=[];
-    } else if(ctsV.length>=4){
-      var hp=ctsV[1]/100,hcv=ctsV[3]/100;
-      if(isHP(hp)&&isHC(hcv)&&!d['hp_6']) KVAS.forEach(function(kk){d['hp_'+kk]=hp; d['hc_'+kk]=hcv;});
-      prevKwh=null; ctsBuf=[];
-    } else if(ctsV.length===2&&ctsV[1]>ctsV[0]&&!d['kwh_6_base']){
-      var kw=ctsV[1]/100; KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=kw;}); bKwhTtc=kw; prevKwh=null; ctsBuf=[];
-    } else if(nv.length===1&&isKwhC(nv[0])){
-      ctsBuf.push(nv[0]);
-      if(ctsBuf.length===4){
-        var kw6=ctsBuf[2]/100,kw9=ctsBuf[3]/100;
-        if(isKwh(kw6)&&isKwh(kw9)&&!d['kwh_6_base']){
-          ['3','6'].forEach(function(kk){d['kwh_'+kk+'_base']=kw6;});
-          ['9','12','15','18','24','30','36'].forEach(function(kk){d['kwh_'+kk+'_base']=kw9;});
-          bKwhTtc=kw6;
+      var v0=kwhV[0],v1=kwhV[1];
+      // Check if these are TWO DIFFERENT kWh for TWO kVA groups
+      // e.g. Mint: "0.1767" (3-6kVA) on one line, "0.1755" (9-36kVA) on another
+      // OR Octopus: "0.1334 0.1971" (HTT then TTC for same group)
+      if(v0<v1){ // HT then TTC pair
+        var kw=ttc(v0,v1);
+        if(!d['kwh_6_base']){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=kw;}); bKwhTtc=kw; }
+        else if(isHP(kw)&&!d['hp_6']&&(!bKwhTtc||kw>bKwhTtc*1.02)) KVAS.forEach(function(kk){d['hp_'+kk]=kw;});
+      } else { // v0 > v1: could be two different kWh values for two groups
+        // e.g. Octopus TTC base: 0.1971 (3-6) and 0.1958 (9+)
+        var big=v0, small=v1;
+        if(isKwh(big)&&isKwh(small)&&Math.abs(big-small)<0.005){
+          // Two slightly different kWh: big=small kVA, small=large kVA
+          if(!d['kwh_6_base']){
+            ['3','6'].forEach(function(k){ d['kwh_'+k+'_base']=big; });
+            ['9','12','15','18','24','30','36'].forEach(function(k){ d['kwh_'+k+'_base']=small; });
+            bKwhTtc=big;
+          }
+        } else if(isKwh(big)){
+          if(!d['kwh_6_base']){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=big;}); bKwhTtc=big; }
         }
-        ctsBuf=[];
       }
       prevKwh=null;
-    } else { prevKwh=null; ctsBuf=[]; }
+    } else if(kwhV.length===1){
+      var kw=kwhV[0];
+      if(prevKwh!==null&&Math.abs(kw-prevKwh)>0.0001){
+        var kSm=Math.min(kw,prevKwh),kLg=Math.max(kw,prevKwh);
+        var ratio=kSm>0?kLg/kSm:999;
+        if(ratio>=1.2&&ratio<=1.65){
+          // HT/TTC pair
+          var kTTC=kLg;
+          if(!d['kwh_6_base']){ KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=kTTC;}); bKwhTtc=kTTC; }
+          else if(isHP(kTTC)&&!d['hp_6']) KVAS.forEach(function(kk){d['hp_'+kk]=kTTC;});
+          else if(isHC(kTTC)&&d['hp_6']&&!d['hc_6']) KVAS.forEach(function(kk){d['hc_'+kk]=kTTC;});
+          prevKwh=null;
+        } else if(isKwh(kw)&&isKwh(prevKwh)&&Math.abs(kw-prevKwh)<0.003){
+          // Two close kWh values = two groups (e.g. Mint 0.1767 / 0.1755)
+          var bigK=Math.max(kw,prevKwh), smK=Math.min(kw,prevKwh);
+          if(!d['kwh_6_base']){
+            ['3','6'].forEach(function(k){ d['kwh_'+k+'_base']=bigK; });
+            ['9','12','15','18','24','30','36'].forEach(function(k){ d['kwh_'+k+'_base']=smK; });
+            bKwhTtc=bigK;
+          }
+          prevKwh=null;
+        } else { prevKwh=kw; }
+      } else { prevKwh=kw; }
+    } else { prevKwh=null; }
   }
 
-  // Primeo HC post-pass
-  if(d['hp_6']&&!d['hc_6']){
-    for(var li=0;li<linesS.length;li++){
-      if(/[a-zA-Z]{4,}/.test(linesS[li])) continue;
-      var nv=gnf(linesS[li]);
-      if(nv.length===1&&isHC(nv[0])&&!d['hc_6']) KVAS.forEach(function(kk){if(!d['hc_'+kk])d['hc_'+kk]=nv[0];});
+  // ── La Belle Energie — Prudence only (non-starred) ─────────────
+  (function(){
+    var lbeText=rawText.replace(/,/g,'.');
+    for(var i=0;i<12;i++){
+      var prev=lbeText;
+      lbeText=lbeText.replace(/(\d) (\d)/g,'$1$2').replace(/(\d) \. (\d)/g,'$1.$2').replace(/(\d) (\*)/g,'$1$2');
+      if(lbeText===prev) break;
     }
-  }
+    var lbe=lbeText;
+    // Find Prudence kWh: non-starred, in range 0.16-0.185 (base) and 0.17-0.21 (HP) and 0.13-0.16 (HC)
+    var items=[]; var reKwh=/0\.[\d]{3,}\*?/g; var mk;
+    while((mk=reKwh.exec(lbe))!==null){
+      var val=parseFloat(mk[0].replace('*',''));
+      var starred=mk[0].indexOf('*')>=0;
+      items.push({v:val,star:starred});
+    }
+    var kwhB=items.filter(function(x){return !x.star&&x.v>0.163&&x.v<0.180;});
+    var kwhHP=items.filter(function(x){return !x.star&&x.v>0.17&&isHP(x.v);});
+    var kwhHC=items.filter(function(x){return !x.star&&x.v>0.13&&x.v<0.155;});
+    if(kwhB.length){
+      var lbeBase=Math.max.apply(null,kwhB.map(function(x){return x.v;}));
+      var curBase=d['kwh_6_base']||0;
+      if(!curBase||Math.abs(lbeBase-0.172)<Math.abs(curBase-0.172))
+        KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=lbeBase;});
+    }
+    if(kwhHP.length&&kwhHC.length){
+      var hpV=Math.max.apply(null,kwhHP.map(function(x){return x.v;}));
+      var hcV=Math.max.apply(null,kwhHC.map(function(x){return x.v;}));
+      KVAS.forEach(function(kk){if(!d['hp_'+kk])d['hp_'+kk]=hpV; if(!d['hc_'+kk])d['hc_'+kk]=hcV;});
+    }
+    // Abos: find TTC increasing sequence starting >14
+    var aboRaw=[]; var reAbo=/[1-9]\d\.[\d]{2,}/g; var maA;
+    while((maA=reAbo.exec(lbe))!==null){ var v=parseFloat(maA[0]); if(v>11&&v<80)aboRaw.push(v); }
+    var ttcA=[]; var bestLen=0;
+    for(var s=0;s<aboRaw.length;s++){
+      if(aboRaw[s]<14) continue;
+      var seq=[aboRaw[s]];
+      for(var ii=s+1;ii<aboRaw.length;ii++){
+        if(aboRaw[ii]>seq[seq.length-1]*1.02&&aboRaw[ii]<seq[seq.length-1]*2.0) seq.push(aboRaw[ii]); else break;
+      }
+      if(seq.length>=6&&seq.length>bestLen){bestLen=seq.length; ttcA=seq;}
+    }
+    var aboMap=['6','9','12','15','18','24','30','36'];
+    ttcA.slice(0,8).forEach(function(v,i){ if(aboMap[i]&&!d['abo_'+aboMap[i]+'_base'])d['abo_'+aboMap[i]+'_base']=v; });
+  })();
 
-  // Octopus standalone HP/HC (not in consecutive pairs)
+  // ── Octopus standalone HP/HC post-pass ────────────────────────
   if(d['kwh_6_base']&&!d['hp_6']){
     for(var li=0;li<linesS.length;li++){
       var nv=gnf(linesS[li]);
@@ -1369,51 +1337,76 @@ function parseElecTariffs(rawText) {
     }
   }
 
-  // La Belle Energie — Prudence only (non-starred)
-  (function(){
-    var lbeText=rawText.replace(/,/g,'.');
-    for(var i=0;i<12;i++){
-      var prev=lbeText;
-      lbeText=lbeText.replace(/(\d) (\d)/g,'$1$2').replace(/(\d) \. (\d)/g,'$1.$2').replace(/(\d) (\*)/g,'$1$2');
-      if(lbeText===prev) break;
+  // ── Primeo TTC section ────────────────────────────────────────
+  if(!d['abo_6_base']){
+    var idx2=rawNorm.indexOf('Tarif TTC'); if(idx2>=0){
+      var ps=rawNorm.substring(idx2); var rePrimeo=/(3|6|9|12|15|18|24|30|36)\s*k[Vv][Aa]\s+([\d.]+)/g; var mp;
+      while((mp=rePrimeo.exec(ps))!==null){ var kk=mp[1],abo=parseFloat(mp[2]); if(isAbo(abo)){if(!d['abo_'+kk+'_base'])d['abo_'+kk+'_base']=abo; if(!d['abo_'+kk+'_hc'])d['abo_'+kk+'_hc']=abo;} }
     }
-    for(var i=0;i<6;i++){ var prev=lbeText; lbeText=lbeText.replace(/([\d]+\.[\d]+) (\d)/g,'$1$2'); if(lbeText===prev)break; }
-    var lbe=lbeText;
-    var aboRaw=[]; var reAbo=/[1-9]\d\.[\d]{2,}/g; var maA;
-    while((maA=reAbo.exec(lbe))!==null){ var v=parseFloat(maA[0]); if(v>11&&v<80)aboRaw.push(v); }
-    var ttcA=[]; var bestLen=0;
-    for(var s=0;s<aboRaw.length;s++){
-      if(aboRaw[s]<14) continue;
-      var seq=[aboRaw[s]];
-      for(var i=s+1;i<aboRaw.length;i++){
-        if(aboRaw[i]>seq[seq.length-1]*1.05&&aboRaw[i]<seq[seq.length-1]*2.0) seq.push(aboRaw[i]); else break;
+    // Primeo kWh TTC: look for "0.1940" and "0.1927" in TTC section
+    if(rawNorm.indexOf('Tarif TTC')>=0){
+      var ttcIdx=rawNorm.indexOf('Tarif TTC');
+      var ttcSection=rawNorm.substring(ttcIdx);
+      // Base kWh: 0.1940 for 3-6kVA, 0.1927 for 9+kVA
+      var kwhMatches=ttcSection.match(/0\.[12]\d{3}/g)||[];
+      var kwhUniq=[]; kwhMatches.forEach(function(v){ if(kwhUniq.indexOf(v)<0)kwhUniq.push(v); });
+      // First unique kWh = base 3-6kVA, second = base 9-36kVA
+      if(kwhUniq.length>=1&&isKwh(parseFloat(kwhUniq[0]))){
+        var k1=parseFloat(kwhUniq[0]);
+        ['3','6'].forEach(function(k){ if(!d['kwh_'+k+'_base'])d['kwh_'+k+'_base']=k1; });
+        if(kwhUniq.length>=2&&isKwh(parseFloat(kwhUniq[1]))&&parseFloat(kwhUniq[1])!==k1){
+          var k2=parseFloat(kwhUniq[1]);
+          ['9','12','15','18','24','30','36'].forEach(function(k){ if(!d['kwh_'+k+'_base'])d['kwh_'+k+'_base']=k2; });
+        } else {
+          ['9','12','15','18','24','30','36'].forEach(function(k){ if(!d['kwh_'+k+'_base'])d['kwh_'+k+'_base']=k1; });
+        }
       }
-      if(seq.length>=6&&seq.length>bestLen){bestLen=seq.length; ttcA=seq;}
+      // HP/HC: look for HP ~0.2065, HC ~0.1579
+      if(!d['hp_6']){
+        var hpM=ttcSection.match(/0\.20\d{2}/g); var hcM=ttcSection.match(/0\.1[5-6]\d{2}/g);
+        if(hpM) KVAS.forEach(function(k){ if(!d['hp_'+k])d['hp_'+k]=parseFloat(hpM[0]); });
+        if(hcM) KVAS.forEach(function(k){ if(!d['hc_'+k])d['hc_'+k]=parseFloat(hcM[hcM.length-1]); });
+      }
     }
-    var items=[]; var reKwh=/0\.[\d]{3,}\*?/g; var mk;
-    while((mk=reKwh.exec(lbe))!==null){ items.push({v:parseFloat(mk[0].replace('*','')),star:mk[0].endsWith('*')}); }
-    var kwhB=items.filter(function(x){return !x.star&&x.v>0.163&&x.v<0.180;}).map(function(x){return x.v;});
-    var kwhHP=items.filter(function(x){return !x.star&&x.v>0.18&&isHP(x.v);}).map(function(x){return x.v;});
-    var kwhHC=items.filter(function(x){return !x.star&&x.v>0.13&&x.v<0.166;}).map(function(x){return x.v;});
-    var aboMap=['6','9','12','15','18','24','30','36'];
-    ttcA.slice(0,8).forEach(function(v,i){ if(aboMap[i]&&!d['abo_'+aboMap[i]+'_base'])d['abo_'+aboMap[i]+'_base']=v; });
-    if(kwhB.length){
-      var lbeBase=Math.max.apply(null,kwhB); var curBase=d['kwh_6_base']||0;
-      if(!curBase||Math.abs(lbeBase-0.172)<Math.abs(curBase-0.172)) KVAS.forEach(function(kk){d['kwh_'+kk+'_base']=lbeBase;});
-    }
-    if(kwhHP.length&&kwhHC.length){
-      var hpV=Math.max.apply(null,kwhHP); var hcV=Math.max.apply(null,kwhHC);
-      KVAS.forEach(function(kk){if(!d['hp_'+kk])d['hp_'+kk]=hpV; if(!d['hc_'+kk])d['hc_'+kk]=hcV;});
-    }
-  })();
+  }
 
-  // Final cleanup
+  // ── Paste text parser (Ekwateur) ─────────────────────────────
+  // Normalize: "0.2095€/kWh" → "0.2095\n€/kWh", handle both formats
+  if(!d['abo_6_base']){
+    var pasteNorm = rawNorm.replace(/\r/g,'')
+      .replace(/(0\.[12]\d{3,4})€\/kWh/g,'$1\n€/kWh')
+      .replace(/(0\.[12]\d{3,4})(€)/g,'$1\n$2');
+    // Base: "6\nkVA\n[desc]\n0.XXXX\n€/kWh\nY.YY\n€/mois"
+    var pasteRe = /\b(3|6|9|12|15|18|24|30|36)\s*\nkVA[^\n]*\n(?:[^\n]*\n)?(0\.[12]\d{3,4})\s*\n[^\n]*\n([\d.]+)\s*\n/g;
+    var pm;
+    while((pm=pasteRe.exec(pasteNorm))!==null){
+      var k=pm[1], kwh=parseFloat(pm[2]), abo=parseFloat(pm[3]);
+      if(isKwh(kwh)&&isAbo(abo)){
+        if(!d['abo_'+k+'_base']) d['abo_'+k+'_base']=abo;
+        if(!d['kwh_'+k+'_base']) d['kwh_'+k+'_base']=kwh;
+      }
+    }
+    // HP/HC: "6\nkVA\n[desc]\n0.XXXX\n€/kWh\nHP\n0.XXXX\n€/kWh\nHC\nY.YY\n€/mois"
+    var hpPasteRe = /\b(6|9|12|15|18)\s*\nkVA[^\n]*\n(?:[^\n]*\n)?(0\.[12]\d{3,4})\s*\n[^\n]*\nHP\n(0\.[12]\d{3,4})\s*\n[^\n]*\nHC\n([\d.]+)\s*\n/g;
+    var hm;
+    while((hm=hpPasteRe.exec(pasteNorm))!==null){
+      var k=hm[1], hp=parseFloat(hm[2]), hc=parseFloat(hm[3]), abo=parseFloat(hm[4]);
+      if(isHP(hp)&&isHC(hc)&&isAbo(abo)){
+        if(!d['abo_'+k+'_hc']) d['abo_'+k+'_hc']=abo;
+        if(!d['hp_'+k]) d['hp_'+k]=hp;
+        if(!d['hc_'+k]) d['hc_'+k]=hc;
+      }
+    }
+  }
+
+  // ── Final cleanup ─────────────────────────────────────────────
   Object.keys(d).forEach(function(k){
     if(d[k]&&(k.startsWith('kwh_')||k.startsWith('hp_')||k.startsWith('hc_'))&&d[k]>1) d[k]=d[k]/100;
     if(d[k]) d[k]=+d[k].toPrecision(6);
   });
   return d;
 }
+
 
 
 function parseGasTariffs(rawText) {
@@ -1581,7 +1574,7 @@ function startEdit(i) {
 }
 function commitName(i) {
   var inp=document.getElementById('sinput_'+i);
-  if(inp&&inp.value.trim()) suppliers[i].name=inp.value.trim();
+  if(inp&&inp.value.trim()) getSuppliersList()[i].name=inp.value.trim();
   editingSupplier=null; renderSidebar();
 }
 function sKeydown(e,i) {
@@ -1618,7 +1611,7 @@ async function calcRefPDF(energy) {
       if(extracted.abo_6_base) REF.elec.abo_6_base=extracted.abo_6_base;
       if(extracted.kwh_6_base) REF.elec.kwh_6_base=extracted.kwh_6_base;
       if(extracted.abo_9_base) REF.elec.abo_9_base=extracted.abo_9_base;
-      if(extracted.kwh_9_base) REF.elec.kwh_9_base=extracted.kwh_9_base;
+      if(extracted.kwh_9_base&&Math.abs(extracted.kwh_9_base-(extracted.kwh_6_base||0))>0.0001) REF.elec.kwh_9_base=extracted.kwh_9_base;
       if(extracted.abo_6_hc)   REF.elec.abo_6_hc=extracted.abo_6_hc;
       if(extracted.hp_6)       REF.elec.hp_6=extracted.hp_6;
       if(extracted.hc_6)       REF.elec.hc_6=extracted.hc_6;
@@ -2131,7 +2124,7 @@ function parseDecomposedElec(text) {
 function applyDecomposed(data) {
   // Switch to decomposed mode and re-render
   if (currentSupplier !== null) {
-    var sup = suppliers[currentSupplier];
+    var sup = getSuppliersList()[currentSupplier];
     sup.elec.decomposed = true;
     // Store data
     Object.keys(data).forEach(function(k){ sup.elec.data[k] = data[k]; });
@@ -2152,10 +2145,10 @@ function processPastedText() {
     if (decomp && Object.keys(decomp).length > 0) {
       // Switch to decomposed mode
       if (currentSupplier !== null) {
-        suppliers[currentSupplier].elec.decomposed = true;
+        getSuppliersList()[currentSupplier].elec.decomposed = true;
       }
       applyDecomposed(decomp);
-      if (currentSupplier !== null) suppliers[currentSupplier][currentEnergy].pdfName = 'Texte collé';
+      if (currentSupplier !== null) getSuppliersList()[currentSupplier][currentEnergy].pdfName = 'Texte collé';
       showToast('✓ Tarif décomposé extrait et calculé', 'success');
     } else {
       // Fall back to simple mode
@@ -2163,7 +2156,7 @@ function processPastedText() {
       var count = Object.keys(extracted).length;
       if (count > 0) {
         applyExtracted(extracted);
-        if (currentSupplier !== null) suppliers[currentSupplier][currentEnergy].pdfName = 'Texte collé';
+        if (currentSupplier !== null) getSuppliersList()[currentSupplier][currentEnergy].pdfName = 'Texte collé';
         showToast('✓ '+count+' valeurs extraites du texte', 'success');
       } else {
         showToast('⚠️ Aucune valeur détectée dans ce texte', 'error');
@@ -2175,7 +2168,7 @@ function processPastedText() {
     var count = Object.keys(extracted).length;
     if (count > 0) {
       applyExtracted(extracted);
-      if (currentSupplier !== null) suppliers[currentSupplier][currentEnergy].pdfName = 'Texte collé';
+      if (currentSupplier !== null) getSuppliersList()[currentSupplier][currentEnergy].pdfName = 'Texte collé';
       showToast('✓ '+count+' valeurs gaz extraites', 'success');
     } else {
       showToast('⚠️ Aucune valeur détectée', 'error');
