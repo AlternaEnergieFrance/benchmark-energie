@@ -455,6 +455,7 @@ function init() {
   try { const s=localStorage.getItem('benchmark_history'); if(s) history=JSON.parse(s); } catch(e){}
   try { const sg=localStorage.getItem('benchmark_suppliers_gaz'); if(sg) suppliersGaz=JSON.parse(sg); } catch(e){}
   try { const se=localStorage.getItem('benchmark_suppliers_elec'); if(se) suppliers=JSON.parse(se); } catch(e){}
+  try { const sr=localStorage.getItem('benchmark_ref'); if(sr){ var savedRef=JSON.parse(sr); if(savedRef.elec) Object.assign(REF.elec,savedRef.elec); if(savedRef.gas) Object.assign(REF.gas,savedRef.gas); } } catch(e){}
   applyPreload();
   const now = new Date();
   document.getElementById('monthDisplay').textContent =
@@ -1056,6 +1057,12 @@ function saveSupplier(e) {
   bucket.status = (d.abo_6_base || d.abo_9_base || d.abo_6_hc || d.g_abo_b0 || d.g_abo_b1) ? 'done' : 'partial';
   renderSidebar();
   showToast('✓ '+s.name+' ('+(currentEnergy==='elec'?'⚡':'🔥')+') sauvegardé','success');
+  // Auto-persist to localStorage so data survives navigation
+  try {
+    localStorage.setItem('benchmark_suppliers_elec', JSON.stringify(suppliers));
+    localStorage.setItem('benchmark_suppliers_gaz', JSON.stringify(suppliersGaz));
+    localStorage.setItem('benchmark_ref', JSON.stringify(REF));
+  } catch(e){}
   // Classement temps réel
   var resTab = document.getElementById('tabResults');
   if (resTab && resTab.style.display !== 'none') resTab.innerHTML = renderResultsHTML();
