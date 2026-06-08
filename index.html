@@ -793,6 +793,7 @@ function renderEntry() {
     <div style="padding-top:8px;border-top:1px solid var(--border);">
       <button type="submit" class="btn-save">✓ Valider</button>
       <button type="button" class="btn-secondary" onclick="nextSupplier()">Suivant →</button>
+      <button type="button" class="btn-secondary" onclick="resetSupplier()" style="float:right;color:var(--danger,#c00);">↺ Réinitialiser</button>
     </div>
   </form>`;
 }
@@ -1782,6 +1783,33 @@ function sKeydown(e,i) {
   if(e.key==='Enter'){e.preventDefault();commitName(i);}
   if(e.key==='Escape'){editingSupplier=null;renderSidebar();}
 }
+function resetSupplier() {
+  if(currentSupplier === null) return;
+  var sup = getSuppliersList()[currentSupplier];
+  // Clear current energy data
+  sup[currentEnergy] = {data:{}, status:'empty', pdfName:null, decomposed:false};
+  // Re-apply PRELOAD
+  var pg = currentEnergy==='gas' && PRELOAD.gas && PRELOAD.gas[sup.name];
+  if(pg) {
+    var gd = sup.gas.data;
+    gd.offer = pg.offer;
+    if(pg.b0){ gd.g_abo_b0=pg.b0.abo; [1,2,3,4,5,6].forEach(function(z){if(pg.b0.zones)gd['g_kwh_b0_z'+z]=pg.b0.zones[z-1];}); }
+    if(pg.b1){ gd.g_abo_b1=pg.b1.abo; [1,2,3,4,5,6].forEach(function(z){if(pg.b1.zones)gd['g_kwh_b1_z'+z]=pg.b1.zones[z-1];}); }
+    sup.gas.status='done';
+  }
+  var pe = currentEnergy==='elec' && PRELOAD.elec && PRELOAD.elec[sup.name];
+  if(pe) {
+    var d=sup.elec.data; d.offer=pe.offer;
+    ['3','6','9','12','15','18'].forEach(function(k){var r=pe[k];if(!r)return;if(r.abo_base)d['abo_'+k+'_base']=r.abo_base;if(r.kwh_base)d['kwh_'+k+'_base']=r.kwh_base;if(r.abo_hc)d['abo_'+k+'_hc']=r.abo_hc;if(r.kwh_hp)d['hp_'+k]=r.kwh_hp;if(r.kwh_hc)d['hc_'+k]=r.kwh_hc;});
+    sup.elec.status='done';
+  }
+  // Persist and re-render
+  try{localStorage.setItem('benchmark_suppliers_elec',JSON.stringify(suppliers));localStorage.setItem('benchmark_suppliers_gaz',JSON.stringify(suppliersGaz));}catch(e){}
+  renderSidebar();
+  renderContent();
+  showToast('↺ Données réinitialisées depuis PRELOAD','success');
+}
+
 function deleteSupplier(i) {
   if(currentEnergy === 'elec') {
     suppliers.splice(i, 1);
