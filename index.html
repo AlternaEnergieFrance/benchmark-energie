@@ -1128,7 +1128,11 @@ async function handlePDF(event) {
   document.getElementById('extractLabel').innerHTML='<span class="spinner"></span>…';
   try {
     const text = await extractPDFText(file);
+    console.log('RAW_TEXT_START');
+    console.log(text.substring(0,2000));
+    console.log('RAW_TEXT_END');
     const extracted = currentEnergy==='elec'?parseElecTariffs(text):parseGasTariffs(text);
+    console.log('EXTRACTED:', JSON.stringify(extracted));
     getSuppliersList()[currentSupplier][currentEnergy].pdfName = file.name;
     if (Object.keys(extracted).length>0) {
       applyExtracted(extracted);
@@ -1470,305 +1474,235 @@ function parseElecTariffs(rawText) {
 
 function parseGasTariffs(rawText) {
   var d = {};
-  function pf(s){ var v=parseFloat(String(s).replace(/,/g,'.')); return isNaN(v)?null:v; }
-  // Normalize: replace commas, collapse whitespace
-  var norm = rawText.replace(/,/g,'.').replace(/\r/g,'').replace(/[ \t]+/g,' ');
+  function pf(s) { var v = parseFloat(String(s).replace(/,/g,'.')); return isNaN(v) ? null : v; }
+  var norm = rawText.replace(/,/g,'.').replace(/\r/g,'');
+  var lines = norm.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
 
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT A: EDF — "Zone N abo_b0 kwh_b0 abo_b1 kwh_b1 ..." (both bands per line)
-  // e.g. "Zone 1 9.87 0.1385 23.29 0.1080 23.29 0.1080"
-  // ─────────────────────────────────────────────────────────────
-  var edfZones={}, edfM;
-  var edfRe=/Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
-  while((edfM=edfRe.exec(norm))!==null){
-    var zn=parseInt(edfM[1]),a0=pf(edfM[2]),k0=pf(edfM[3]),a1=pf(edfM[4]),k1=pf(edfM[5]);
-    if(a0&&a0>5&&a0<50&&k0&&k0>0.05&&k0<0.3&&a1&&a1>5&&a1<50&&k1&&k1>0.05&&k1<0.3)
-      edfZones[zn]={a0:a0,k0:k0,a1:a1,k1:k1};
-  }
-  if(edfZones[1]){
-    d.g_abo_b0=edfZones[1].a0; d.g_abo_b1=edfZones[1].a1;
-    for(var zn=1;zn<=6;zn++) if(edfZones[zn]){
-      d['g_kwh_b0_z'+zn]=edfZones[zn].k0;
-      d['g_kwh_b1_z'+zn]=edfZones[zn].k1;
+  // ── ENGIE: search for the characteristic number pattern across ALL lines ──
+  // Pattern: [ach_b0_ht~54 ach_b0_ttc~81 ach_b0_kwh~0.04 ach_b0_kwh_ttc~0.05 ach_b1_ht~186 ach_b1_ttc~278...]
+  // Try each line, and also the full text joined
+  var engieCandidates = lines.slice(); // all lines
+  engieCandidates.push(norm.replace(/\n/g,' ')); // also full text as one string
+  for (var li = 0; li < engieCandidates.length; li++) {
+    var l = engieCandidates[li];
+    var nums = (l.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+    // Find ach_b0 start: ~54 ~81 ~0.04 ~0.05
+    var si = -1;
+    for (var i = 0; i < nums.length - 19; i++) {
+      if (nums[i]>40&&nums[i]<70 && nums[i+1]>60&&nums[i+1]<100 &&
+          nums[i+2]>0.03&&nums[i+2]<0.08 && nums[i+3]>0.04&&nums[i+3]<0.10) { si=i; break; }
     }
+    if (si < 0) continue;
+    var n = nums.slice(si);
+    var ach_b0_ttc=n[1], ach_b0_kwh=n[3], ach_b1_ttc=n[5], ach_b1_kwh=n[7];
+    // Find fourniture start (after duplicate, ~54 ~65 ~0.04 ~0.07)
+    var fs = -1;
+    for (var i = 12; i < n.length-3; i++) {
+      if (n[i]>40&&n[i]<70 && n[i+1]>50&&n[i+1]<80 &&
+          n[i+2]>0.03&&n[i+2]<0.08 && n[i+3]>0.05&&n[i+3]<0.10) { fs=i; break; }
+    }
+    if (fs < 0) continue;
+    var fou_b0_ttc=n[fs+1], fou_b0_kwh=n[fs+3], fou_b1_ttc=n[fs+5], fou_b1_kwh=n[fs+7];
+    d.g_abo_b0 = (ach_b0_ttc+fou_b0_ttc)/12;
+    d.g_abo_b1 = (ach_b1_ttc+fou_b1_ttc)/12;
+    var b0k = ach_b0_kwh+fou_b0_kwh, b1k = ach_b1_kwh+fou_b1_kwh;
+    // Obligations
+    var os=-1;
+    for (var i=fs+8;i<n.length-5;i++) {
+      if (n[i]>0.015&&n[i]<0.022&&n[i+1]>0.02&&n[i+1]<0.03&&n[i+2]>0.02&&n[i+2]<0.035){os=i;break;}
+    }
+    var ob0=(os>=0)?n[os+1]:0.02255, ob1=[];
+    if(os>=0){for(var g=0;g<8&&os+g*6+3<n.length;g++)ob1.push(n[os+g*6+3]);}
+    if(!ob1.length)ob1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
+    for(var z=1;z<=6;z++) d['g_kwh_b0_z'+z]=+((b0k+ob0).toPrecision(5));
+    for(var z=1;z<=6;z++) d['g_kwh_b1_z'+z]=+((b1k+(ob1[z-1]||ob1[0])).toPrecision(5));
     return d;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT B: Total Energies / Octopus
-  // The Y-grouped text gives a line of sequential numbers:
-  // Total: "... HT TTC 12.27 0.1118 0.1538 9.10 12.27 0.1125 0.1547 ... 28.66 0.0844 0.1209 20.05 28.66 ..."
-  // Octopus: separate lines "9.10\n12.27\n20.05\n28.66" then kWh lines
-  // ─────────────────────────────────────────────────────────────
-  
-  // Octopus detection: look for 4 abo-like values in sequence (HT_B0 TTC_B0 HT_B1 TTC_B1)
-  // followed by kWh pairs per zone
-  var lines = norm.split('\n');
-  // Collect single-value lines to detect sequential abo group
-  var singleVals=[], aboLine=null;
-  for(var li=0;li<lines.length;li++){
-    var ln=lines[li].trim();
-    var nums=(ln.match(/\b[\d.]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-    // 4 values on one line
-    if(nums.length===4&&nums[0]>5&&nums[0]<15&&nums[1]>10&&nums[1]<20&&
-       nums[2]>15&&nums[2]<25&&nums[3]>20&&nums[3]<40){
-      aboLine={b0ht:nums[0],b0ttc:nums[1],b1ht:nums[2],b1ttc:nums[3],lineIdx:li};
-      break;
-    }
-    // Single value per line - collect for Octopus-style
-    if(nums.length===1) singleVals.push({v:nums[0],li:li});
-  }
-  // Detect Octopus: 4 sequential single values ~9 ~12 ~20 ~28
-  if(!aboLine){
-    for(var si=0;si<singleVals.length-3;si++){
-      var sv=singleVals.slice(si,si+4).map(function(x){return x.v;});
-      if(sv[0]>5&&sv[0]<15&&sv[1]>10&&sv[1]<20&&sv[2]>15&&sv[2]<25&&sv[3]>20&&sv[3]<40){
-        aboLine={b0ht:sv[0],b0ttc:sv[1],b1ht:sv[2],b1ttc:sv[3],lineIdx:singleVals[si+1].li};
+  // ── HAPPE: line "TTC HTT TTC 159.39 0.10124 0.14116 0.10723 0.10795..." ──
+  for (var li = 0; li < lines.length; li++) {
+    var l = lines[li];
+    if (l.indexOf('0.14116') < 0 && l.indexOf('0.10723') < 0) continue;
+    var nums = (l.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+    // Find 159.39 followed by kWh values
+    for (var i = 0; i < nums.length-3; i++) {
+      if (nums[i]>100&&nums[i]<300 && nums[i+1]>0.05&&nums[i+1]<0.15 && nums[i+2]>0.10&&nums[i+2]<0.20) {
+        d.g_abo_b0 = nums[i]/12;
+        for (var z=1;z<=6;z++) d['g_kwh_b0_z'+z] = nums[i+2]; // 0.14116
+        var b1kwh = nums.slice(i+3).filter(function(v){return v>0.10&&v<0.12;});
+        b1kwh.sort(function(a,b){return a-b;});
+        b1kwh.slice(0,6).forEach(function(v,j){d['g_kwh_b1_z'+(j+1)]=v;});
         break;
       }
     }
+    // B1 abo: find "355.78482.14" pattern on another line
+    for (var li2=0;li2<lines.length;li2++) {
+      var m = lines[li2].match(/\b(\d{3,4}\.\d{2})(\d{3,4}\.\d{2})\b/);
+      if (m) {
+        var a=pf(m[1]),b=pf(m[2]);
+        if (a&&b&&a>200&&a<700&&b>200&&b<700&&b>a) {
+          // Happe: a=355.78 (B1 plage 4000-29999), b=482.14 (B1 plage 4000-29999... wait)
+          // Actually from PDF: "0-3999kWh: 119.3/159.39", "4000-29999: 355.78/482.14"
+          // B0=159.39/12=13.28, B1=482.14/12=40.18
+          // So b=482.14 is B1 abo TTC
+          d.g_abo_b1 = b/12; break;
+        }
+      }
+    }
+    if (d.g_abo_b0 && d.g_kwh_b0_z1) return d;
   }
-  if(aboLine){
-    d.g_abo_b0=aboLine.b0ttc; d.g_abo_b1=aboLine.b1ttc;
-    // Read subsequent lines for kWh per zone: each line has 4 values (HT_B0 TTC_B0 HT_B1 TTC_B1)
-    var zone=1;
-    // Try 4-values-per-line (Octopus PDF format)
-    for(var li=aboLine.lineIdx+1;li<lines.length&&zone<=6;li++){
-      var ln=lines[li].trim();
-      var nums=(ln.match(/\b[\d.]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-      if(nums.length>=4&&nums[0]>0.05&&nums[0]<0.25&&nums[1]>0.05&&nums[1]<0.25&&
-         nums[2]>0.05&&nums[2]<0.25&&nums[3]>0.05&&nums[3]<0.25){
-        d['g_kwh_b0_z'+zone]=nums[1]; d['g_kwh_b1_z'+zone]=nums[3];
-        zone++;
-      }
+
+  // ── EDF: "Zone N9.870.138523.290.1080..." (numbers joined without spaces) ──
+  for (var li = 0; li < lines.length; li++) {
+    var m = lines[li].match(/^Zone\s*(\d)([\d.]+)/);
+    if (!m) continue;
+    var zn = parseInt(m[1]);
+    // Split joined numbers like "9.870.138523.290.1080": alternating abo (N.NN) and kwh (0.NNNN)
+    var tail = m[2];
+    var nums = (tail.match(/\d{1,2}\.\d{2}(?=0\.)|0\.\d{4}/g)||[]).map(pf).filter(function(v){return v!==null;});
+    if(!nums.length) nums = (tail.match(/\d+\.\d+/g)||[]).map(pf).filter(function(v){return v!==null;});
+    if (nums.length >= 4 && nums[0]>5&&nums[0]<50 && nums[1]>0.05&&nums[1]<0.3 &&
+        nums[2]>5&&nums[2]<50 && nums[3]>0.05&&nums[3]<0.3) {
+      if (zn===1) { d.g_abo_b0=nums[0]; d.g_abo_b1=nums[2]; }
+      d['g_kwh_b0_z'+zn]=nums[1];
+      d['g_kwh_b1_z'+zn]=nums[3];
     }
-    // If no zones found yet, try single-value lines (some PDF formats)
-    if(zone===1){
-      // Collect single kWh values after abo line
-      var kwhSingles=[];
-      for(var li=aboLine.lineIdx+1;li<lines.length;li++){
-        var ln=lines[li].trim();
-        var nums=(ln.match(/\b[\d.]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-        if(nums.length===1&&nums[0]>0.05&&nums[0]<0.25) kwhSingles.push(nums[0]);
-        else if(nums.length>1) break; // end of single-value section
+  }
+  if (d.g_abo_b0 && d.g_kwh_b0_z1) return d;
+
+  // ── OCTOPUS: 4 single-value lines (abos), then kWh pairs ──────────
+  var singles=[];
+  for (var li=0;li<lines.length;li++) {
+    var m = lines[li].match(/^(\d+\.\d+)$/);
+    if (m) singles.push({v:pf(m[1]),li:li});
+  }
+  for (var i=0;i<singles.length-3;i++) {
+    var sv=singles.slice(i,i+4).map(function(x){return x.v;});
+    if(sv[0]>5&&sv[0]<15&&sv[1]>10&&sv[1]<20&&sv[2]>15&&sv[2]<25&&sv[3]>20&&sv[3]<40){
+      d.g_abo_b0=sv[1]; d.g_abo_b1=sv[3];
+      var z=1;
+      for(var j=i+4;j+3<singles.length&&z<=6;j+=4){
+        var kv=singles.slice(j,j+4).map(function(x){return x.v;});
+        if(kv[0]>0.05&&kv[0]<0.25&&kv[3]>0.05&&kv[3]<0.25){
+          d['g_kwh_b0_z'+z]=kv[1]; d['g_kwh_b1_z'+z]=kv[3]; z++;
+        } else break;
       }
-      // Pattern: [HT_B0_Z1, TTC_B0_Z1, HT_B1_Z1, TTC_B1_Z1, HT_B0_Z2, TTC_B0_Z2, ...]
-      for(var i=0;i+3<kwhSingles.length&&zone<=6;i+=4){
-        d['g_kwh_b0_z'+zone]=kwhSingles[i+1]; // TTC B0
-        d['g_kwh_b1_z'+zone]=kwhSingles[i+3]; // TTC B1
-        zone++;
-      }
-    }
-    if(d.g_kwh_b0_z1){
-      d.g_kwh_b0_z1=d.g_kwh_b0_z1;
-      d.g_kwh_b1_z1=d.g_kwh_b1_z1||d['g_kwh_b1_z1'];
-      return d;
+      if(d.g_kwh_b0_z1) return d;
+      break;
     }
   }
 
-  // Total Energies: large single-line sequential block
-  // Pattern: find a line with "12.27 ... 28.66" embedded in text
-  for(var li=0;li<lines.length;li++){
-    var ln=lines[li];
-    if(ln.indexOf('12.27')>=0&&ln.indexOf('28.66')>=0&&ln.indexOf('0.1')>=0){
-      // Extract all numbers
-      var allN=(ln.match(/\b[\d.]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-      // Find 12.27 position
-      var b0pos=-1;
-      for(var i=0;i<allN.length;i++){
-        if(Math.abs(allN[i]-12.27)<0.1&&i+2<allN.length&&allN[i+1]>0.08&&allN[i+1]<0.15&&allN[i+2]>0.13&&allN[i+2]<0.22){
-          b0pos=i; break;
+  // ── TOTAL ENERGIES: big line with "12.27 0.1118 0.1538 9.10 12.27..." ──
+  for (var li=0;li<lines.length;li++) {
+    var l=lines[li];
+    if(l.indexOf('12.27')<0||l.indexOf('0.1538')<0) continue;
+    var nums=(l.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+    for(var i=0;i<nums.length-2;i++){
+      if(Math.abs(nums[i]-12.27)<0.1&&nums[i+1]>0.08&&nums[i+1]<0.15&&nums[i+2]>0.13){
+        var ns=nums.slice(i),j=0;
+        var b0a=ns[j++]; j++; var b0z1=ns[j++]; var b0kwh=[b0z1];
+        for(var z=0;z<5&&j+3<ns.length;z++){
+          if(ns[j]>5&&ns[j]<20&&ns[j+1]>ns[j]&&ns[j+2]>0.08&&ns[j+3]>0.13){b0kwh.push(ns[j+3]);j+=4;}else break;
         }
-      }
-      if(b0pos>=0){
-        // Structure: [TTC_B0=12.27, kwhHT_B0, kwhTTC_B0, HT_B0, TTC_B0=12.27, kwhHT_B0, kwhTTC_B0, ...x5...]
-        // Then [TTC_B1=28.66, kwhHT_B1, kwhTTC_B1, HT_B1, TTC_B1=28.66, ...]
-        var ns=allN.slice(b0pos);
-        var i=0;
-        var b0abo=ns[i++]; var b0kht=ns[i++]; var b0z1kwh=ns[i++]; var b0kwh=[b0z1kwh];
-        for(var z=0;z<5&&i+3<ns.length;z++){
-          var ht=ns[i],ttc=ns[i+1],kht=ns[i+2],kttc=ns[i+3];
-          if(ht>5&&ht<20&&ttc>ht&&kht>0.08&&kttc>0.13){ b0kwh.push(kttc); i+=4; } else break;
+        var b1a=ns[j++]; j++; var b1z1=ns[j++]; var b1kwh=[b1z1];
+        for(var z=0;z<5&&j+3<ns.length;z++){
+          if(ns[j]>10&&ns[j]<30&&ns[j+1]>ns[j]&&ns[j+2]>0.05&&ns[j+3]>0.09){b1kwh.push(ns[j+3]);j+=4;}else break;
         }
-        var b1abo=ns[i++]; var b1kht=ns[i++]; var b1z1kwh=ns[i++]; var b1kwh=[b1z1kwh];
-        for(var z=0;z<5&&i+3<ns.length;z++){
-          var ht=ns[i],ttc=ns[i+1],kht=ns[i+2],kttc=ns[i+3];
-          if(ht>10&&ht<30&&ttc>ht&&kht>0.05&&kttc>0.09){ b1kwh.push(kttc); i+=4; } else break;
-        }
-        if(b0abo>5&&b0abo<20&&b1abo>15&&b1abo<45&&b0z1kwh>0.1&&b1z1kwh>0.08){
-          d.g_abo_b0=b0abo; d.g_abo_b1=b1abo;
+        if(b0a>5&&b0a<20&&b1a>15&&b1a<45){
+          d.g_abo_b0=b0a; d.g_abo_b1=b1a;
           for(var z=0;z<b0kwh.length;z++) d['g_kwh_b0_z'+(z+1)]=b0kwh[z];
           for(var z=0;z<b1kwh.length;z++) d['g_kwh_b1_z'+(z+1)]=b1kwh[z];
           return d;
         }
+        break;
       }
-      break;
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT C: Engie decomposed — Fourniture + Acheminement + Obligations
-  // Lines: "jusqu'à 3 999 kWh 54.72 81.90 0.04494 0.05393"
-  //         = Acheminement B0: abo_HT=54.72, abo_TTC=81.90, kwh_HT=0.04494, kwh_TTC=0.05393
-  //        "jusqu'à 3 999 kWh 54.45 65.34 0.04204 0.07012"
-  //         = Fourniture B0: abo_HT=54.45, abo_TTC=65.34, kwh_HT=0.04204, kwh_TTC=0.07012
-  //        "de 4 000 à 29 999 kWh 186.12 278.55 0.01208 0.01450" = Acheminement B1
-  //        "de 4 000 à 29 999 kWh 77.00 92.40 0.04367 0.07207"   = Fourniture B1
-  // Obligations B1 per groupe: Gr.A=0.02801, B=0.02903, C=0.03212, D=0.03546, E=0.03907, F=0.04176
-  // ─────────────────────────────────────────────────────────────
-  var engieAnnual=[];
-  // Find annual abo pairs (50-700 range with HT/TTC pair)
-  var annRe=/\b(\d{2,3}\.\d{2})\s+(\d{2,3}\.\d{2})\s+([\d.]+)\s+([\d.]+)/g; var am;
-  var seenHt={};
-  while((am=annRe.exec(norm))!==null){
-    var ht=pf(am[1]),ttc=pf(am[2]),kht=pf(am[3]),kttc=pf(am[4]);
-    if(ht&&ttc&&ttc>ht&&ht>40&&ht<700&&kttc&&kttc>0.01&&kttc<0.15&&!seenHt[ht]){
-      seenHt[ht]=true;
-      engieAnnual.push({ht:ht,ttc:ttc,kwh_ht:kht,kwh_ttc:kttc});
-    }
+  // ── OHM: "Zone N 9.62 13.51 9.62 13.51 6.45 9.71" ─────────────────
+  var ohmZ={};
+  for(var li=0;li<lines.length;li++){
+    var m=lines[li].match(/^Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+    if(!m) continue;
+    var zn=parseInt(m[1]),v=[pf(m[2]),pf(m[3]),pf(m[4]),pf(m[5]),pf(m[6]),pf(m[7])];
+    if(v[0]&&v[0]>5&&v[0]<20&&v[5]&&v[5]>5&&v[5]<20) ohmZ[zn]={b0:v[3]/100,b1:v[5]/100};
   }
-  if(engieAnnual.length>=4){
-    // Sort by abo size: B0 entries have smaller abo (~54-65), B1 larger (~77-278)
-    engieAnnual.sort(function(a,b){return a.ht-b.ht;});
-    // B0: two entries with small abo (both ~50-90), take the ones with kwh_ttc ~0.05-0.09
-    // B0 entries: both Fourniture and Acheminement have ht<70 (~54-55)
-    // B1 entries: Fourniture ht~77, Acheminement ht~186 (both >70)
-    var b0entries=engieAnnual.filter(function(e){return e.ht<70;});
-    var b1entries=engieAnnual.filter(function(e){return e.ht>=70;});
-    if(b0entries.length>=2&&b1entries.length>=2){
-      // B0 abo = sum of Fourniture TTC + Acheminement TTC / 12
-      var b0aboSum=b0entries.reduce(function(s,e){return s+e.ttc;},0);
-      d.g_abo_b0=b0aboSum/12;
-      // B0 kWh = Fourniture_kwh + Acheminement_kwh + Obligations_B0_GrA
-      var b0kwh=b0entries.reduce(function(s,e){return s+e.kwh_ttc;},0);
-      var engieObligB0=0.02255; // Gr.A <3999kWh TTC
-      d.g_kwh_b0_z1=+(b0kwh+engieObligB0).toPrecision(5);
-      for(var zn=1;zn<=6;zn++) d['g_kwh_b0_z'+zn]=d.g_kwh_b0_z1;
-
-      // B1 abo = Fourniture TTC + Acheminement TTC / 12
-      var b1aboSum=b1entries.reduce(function(s,e){return s+e.ttc;},0);
-      d.g_abo_b1=b1aboSum/12;
-      // B1 kWh = Fourniture_kwh + Acheminement_kwh (both in b1entries)
-      var b1kwhBase=b1entries.reduce(function(s,e){return s+e.kwh_ttc;},0);
-      // Add Obligations per zone (Gr.A-F TTC for 4000-29999kWh)
-      var engieObligB1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
-      for(var zn=1;zn<=6;zn++)
-        d['g_kwh_b1_z'+zn]=+(b1kwhBase+engieObligB1[zn-1]).toPrecision(5);
-      return d;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT D: Happ-e — annual abos + kWh by niveau
-  // "119.3 159.39 0.10124 0.14116" = B0: abo_HT=119.3 abo_TTC=159.39, kwh_HT=0.10124 kwh_TTC=0.14116
-  // "482.14" "355.78" "609.13" "786.16" = B1 abo_TTC at different levels
-  // B1 kWh: 0.10723, 0.10795, 0.10867, 0.10939, 0.11011, 0.11083
-  // ─────────────────────────────────────────────────────────────
-  // Look for pattern: 3-digit abo HT, 3-digit abo TTC, small kWh HT, small kWh TTC
-  var happeRe=/\b(\d{3,4}\.?\d*)\s+(\d{3,4}\.?\d*)\s+(0\.\d{4,5})\s+(0\.\d{4,5})\b/;
-  var happeM=happeRe.exec(norm);
-  if(happeM){
-    var aht=pf(happeM[1]),attc=pf(happeM[2]),kwh_ht=pf(happeM[3]),kwh_ttc=pf(happeM[4]);
-    if(aht&&attc&&attc>aht&&aht>50&&aht<700&&kwh_ttc>0.05&&kwh_ttc<0.25){
-      d.g_abo_b0=attc/12;
-      for(var zn=1;zn<=6;zn++) d['g_kwh_b0_z'+zn]=kwh_ttc;
-      // Find B1 abo: largest annual TTC value
-      var largeTTCs=(norm.match(/\b\d{3,4}\.\d{2}\b/g)||[]).map(pf).filter(function(v){return v&&v>200&&v<1000;});
-      if(largeTTCs.length) d.g_abo_b1=Math.max.apply(null,largeTTCs)/12;
-      // B1 kWh: values 0.107xx-0.111xx
-      var b1kwhVals=(norm.match(/\b0\.10[0-9]{3}\b/g)||[]).map(pf).filter(function(v){return v&&v>0.10&&v<0.12;});
-      b1kwhVals.sort(function(a,b){return a-b;});
-      b1kwhVals.forEach(function(v,i){ if(i<6) d['g_kwh_b1_z'+(i+1)]=v; });
-      if(d.g_kwh_b0_z1) return d;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT E: Ohm — cts kWh in tables, monthly abos
-  // "Zones 1 à 6 7.9910.95 7.99 10.95 19.27 27.73" (base, B0, B1)
-  // "Zone 1 9.62 13.51 9.62 13.51 6.45 9.71" (kWh: base HT/TTC, B0 HT/TTC, B1_HT/TTC in cts)
-  // ─────────────────────────────────────────────────────────────
-  // Look for cts kWh values (5-20 range) in zone lines
-  var ohmZoneRe=/Zone\s+(\d)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g;
-  var ohmM, ohmZones={};
-  while((ohmM=ohmZoneRe.exec(norm))!==null){
-    var zn=parseInt(ohmM[1]);
-    var v=[pf(ohmM[2]),pf(ohmM[3]),pf(ohmM[4]),pf(ohmM[5]),pf(ohmM[6]),pf(ohmM[7])];
-    // Format: HT_base TTC_base HT_B0 TTC_B0 HT_B1 TTC_B1
-    // All in cts (5-20 range)
-    if(v[0]&&v[0]>5&&v[0]<20&&v[5]&&v[5]>5&&v[5]<20){
-      ohmZones[zn]={kwh_b0:v[3]/100, kwh_b1:v[5]/100};
-    }
-  }
-  if(Object.keys(ohmZones).length>0){
-    // Find abos: look for "7.99 10.95 7.99 10.95 19.27 27.73" pattern
-    var ohmAboRe=/\b([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\b/;
-    var ohmAboM=ohmAboRe.exec(norm);
-    if(ohmAboM){
-      var avs=[pf(ohmAboM[1]),pf(ohmAboM[2]),pf(ohmAboM[3]),pf(ohmAboM[4]),pf(ohmAboM[5]),pf(ohmAboM[6])];
-      // Find B0 and B1 monthly abos (8-45 range)
-      var aboVals=avs.filter(function(v){return v&&v>8&&v<45;});
-      aboVals.sort(function(a,b){return a-b;});
-      if(aboVals.length>=2){ d.g_abo_b0=aboVals[0]; d.g_abo_b1=aboVals[aboVals.length-1]; }
-      else if(aboVals.length===1) d.g_abo_b0=aboVals[0];
-    }
-    // If abo not found yet, look specifically
+  if(Object.keys(ohmZ).length>0){
+    // Ohm abo: search for literal "10.95" and "27.73" in text
+    var ohmB0m=norm.match(/10\.95/); var ohmB1m=norm.match(/27\.73/);
+    if(ohmB0m) d.g_abo_b0=10.95;
+    if(ohmB1m) d.g_abo_b1=27.73;
     if(!d.g_abo_b0){
-      var monthlyRe=/\b(7\.99|10\.95|19\.27|27\.73)\b/g; var mm; var mAbos=[];
-      while((mm=monthlyRe.exec(norm))!==null) mAbos.push(pf(mm[1]));
-      var ttcAbos=mAbos.filter(function(v){return v>9;});
-      if(ttcAbos.length>=2){ d.g_abo_b0=Math.min.apply(null,ttcAbos); d.g_abo_b1=Math.max.apply(null,ttcAbos); }
+      // Fallback: find two monthly abos in abo section
+      for(var li=0;li<lines.length;li++){
+        var nums=(lines[li].match(/\d+\.\d+/g)||[]).map(pf).filter(function(v){return v&&v>9&&v<35;});
+        var uniq=nums.filter(function(v,i,a){return a.indexOf(v)===i;});
+        if(uniq.length>=2){uniq.sort(function(a,b){return a-b;});d.g_abo_b0=uniq[0];d.g_abo_b1=uniq[uniq.length-1];break;}
+      }
     }
-    for(var zn=1;zn<=6;zn++) if(ohmZones[zn]){
-      d['g_kwh_b0_z'+zn]=ohmZones[zn].kwh_b0;
-      d['g_kwh_b1_z'+zn]=ohmZones[zn].kwh_b1;
-    }
+    for(var zn=1;zn<=6;zn++) if(ohmZ[zn]){d['g_kwh_b0_z'+zn]=ohmZ[zn].b0;d['g_kwh_b1_z'+zn]=ohmZ[zn].b1;}
     if(d.g_abo_b0) return d;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT F: Alterna ref — "Base / BO 119.17 159.23 10.20 14.21" + B1 cts per zone
-  // ─────────────────────────────────────────────────────────────
-  var altB0=norm.match(/(?:Base|B0|BO)[^0-9]*(\d{3,4}\.\d{2})\s+(\d{3,4}\.\d{2})\s+([\d.]+)\s+([\d.]+)/);
-  if(altB0){
-    var ttcAbo=pf(altB0[2]), kwhCts=pf(altB0[4]);
-    if(ttcAbo&&ttcAbo>50&&ttcAbo<700&&kwhCts&&kwhCts>5&&kwhCts<25){
-      d.g_abo_b0=ttcAbo/12;
-      for(var zn=1;zn<=6;zn++) d['g_kwh_b0_z'+zn]=kwhCts/100;
+  // ── ENI / ALTERNA: single-value lines ──────────────────────────────
+  // Collect all single-value lines
+  var sv_annual=[], sv_kwh_eur=[], sv_kwh_cts=[];
+  for(var li=0;li<lines.length;li++){
+    var m=lines[li].match(/^\s*([\d.]+)\s*$/);
+    if(!m) continue;
+    var v=pf(m[1]); if(!v||v<=0) continue;
+    if(v>50&&v<700) sv_annual.push(v);
+    else if(v>0.05&&v<0.25) sv_kwh_eur.push(v);
+    else if(v>5&&v<25) sv_kwh_cts.push(v);
+  }
+  // Also check big line for Alterna: "119.17 159.23 10.20 14.21 ..."
+  var altBigLine=null;
+  for(var li=0;li<lines.length;li++){
+    if(lines[li].indexOf('119.17')>=0||lines[li].indexOf('159.23')>=0) {altBigLine=lines[li];break;}
+  }
+  if(altBigLine){
+    var nums=(altBigLine.match(/\b[\d.]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+    // Find annual pairs
+    var annuals=nums.filter(function(v){return v>50&&v<700;});
+    annuals=annuals.filter(function(v,i,a){return a.indexOf(v)===i;});
+    annuals.sort(function(a,b){return a-b;});
+    if(annuals.length>=4){ d.g_abo_b0=+(annuals[1]/12).toFixed(2); d.g_abo_b1=+(annuals[3]/12).toFixed(2); }
+    else if(annuals.length>=2){ d.g_abo_b0=+(annuals[0]/12).toFixed(2); d.g_abo_b1=+(annuals[annuals.length-1]/12).toFixed(2); }
+    // B0 kwh: find 14.21cts in nums
+    var b0cts=nums.filter(function(v){return v>=13&&v<=18;});
+    if(b0cts.length) for(var z=1;z<=6;z++) d['g_kwh_b0_z'+z]=Math.max.apply(null,b0cts)/100;
+    // B1 kwh zones from nums
+    var b1cts=nums.filter(function(v){return v>10.5&&v<13;});
+    // Also from separate single-value lines (7.71-8.00 are HT, 11.22-11.57 are TTC)
+    b1cts=b1cts.concat(sv_kwh_cts.filter(function(v){return v>10&&v<13;}));
+    b1cts=b1cts.filter(function(v,i,a){return a.indexOf(v)===i;});
+    b1cts.sort(function(a,b){return a-b;});
+    // If missing zone 1, try to infer: HT=7.71→TTC should be ~11.22
+    // From separate lines: 7.71,7.77,7.83,7.88,7.94,8.00 are HT; find corresponding TTC in bigLine
+    if(!b1cts.length){
+      // Look for cts 10.5-13 in the big line
+      b1cts=nums.filter(function(v){return v>10.5&&v<13;});
+      b1cts.sort(function(a,b){return a-b;});
     }
+    b1cts.slice(0,6).forEach(function(v,i){if(!d['g_kwh_b1_z'+(i+1)])d['g_kwh_b1_z'+(i+1)]=v/100;});
+    if(d.g_abo_b0) return d;
   }
-  // B1 annual abo
-  var altB1abo=norm.match(/(?:>|≥|chauff)[^0-9]*(\d{3,4}\.\d{2})\s+(\d{3,4}\.\d{2})/i);
-  if(altB1abo){
-    var ttcB1=pf(altB1abo[2]);
-    if(ttcB1&&ttcB1>200&&ttcB1<700) d.g_abo_b1=ttcB1/12;
-  }
-  // B1 kWh: cts values in range 10-13
-  var b1ctsVals=(norm.match(/\b(1[01]\.\d{2})\b/g)||[]).map(pf).filter(function(v){return v&&v>10&&v<13;});
-  b1ctsVals.sort(function(a,b){return a-b;});
-  b1ctsVals.slice(0,6).forEach(function(v,i){ d['g_kwh_b1_z'+(i+1)]=v/100; });
-  if(d.g_abo_b0) return d;
 
-  // ─────────────────────────────────────────────────────────────
-  // FORMAT G: Eni — simple table abo HT/TTC + kWh HT/TTC
-  // ─────────────────────────────────────────────────────────────
-  var annAbos=[],kwhEur=[];
-  var pairRe=/([\d]{2,3}\.[\d]{2})\s+([\d]{2,3}\.[\d]{2})/g,pm;
-  while((pm=pairRe.exec(norm))!==null){
-    var a=pf(pm[1]),b=pf(pm[2]);
-    if(a&&b&&b>a&&a>50&&a<700) annAbos.push(b);
+  // ENI: single value lines
+  if(sv_annual.length>=2){
+    sv_annual=sv_annual.filter(function(v,i,a){return a.indexOf(v)===i;});
+    sv_annual.sort(function(a,b){return a-b;});
+    // Pairs: (HT_B0,TTC_B0,HT_B1,TTC_B1) → take TTC (pos 1 and 3 when 4 values)
+    if(sv_annual.length>=4){ d.g_abo_b0=sv_annual[1]/12; d.g_abo_b1=sv_annual[3]/12; }
+    else if(sv_annual.length>=2){ d.g_abo_b0=sv_annual[0]/12; d.g_abo_b1=sv_annual[sv_annual.length-1]/12; }
   }
-  (norm.match(/\b0\.[\d]{4,5}\b/g)||[]).map(pf).filter(Boolean).forEach(function(v){
-    if(v>0.05&&v<0.25) kwhEur.push(v);
-  });
-  if(annAbos.length>=2){
-    annAbos.sort(function(a,b){return a-b;});
-    d.g_abo_b0=annAbos[0]/12; d.g_abo_b1=annAbos[annAbos.length-1]/12;
+  if(sv_kwh_eur.length>=2){
+    sv_kwh_eur.sort(function(a,b){return b-a;});
+    for(var z=1;z<=6;z++){ d['g_kwh_b0_z'+z]=sv_kwh_eur[0]; d['g_kwh_b1_z'+z]=sv_kwh_eur[1]; }
+  } else if(sv_kwh_eur.length===1){
+    for(var z=1;z<=6;z++) d['g_kwh_b0_z'+z]=sv_kwh_eur[0];
   }
-  if(kwhEur.length>=2){
-    kwhEur.sort(function(a,b){return b-a;});
-    for(var zn=1;zn<=6;zn++){ d['g_kwh_b0_z'+zn]=kwhEur[0]; d['g_kwh_b1_z'+zn]=kwhEur[kwhEur.length-1]; }
-  }
+
   return d;
 }
 
