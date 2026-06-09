@@ -1128,11 +1128,7 @@ async function handlePDF(event) {
   document.getElementById('extractLabel').innerHTML='<span class="spinner"></span>…';
   try {
     const text = await extractPDFText(file);
-    console.log('RAW_TEXT_START');
-    console.log(text.slice(-3000));
-    console.log('RAW_TEXT_END');
     const extracted = currentEnergy==='elec'?parseElecTariffs(text):parseGasTariffs(text);
-    console.log('EXTRACTED:', JSON.stringify(extracted));
     getSuppliersList()[currentSupplier][currentEnergy].pdfName = file.name;
     if (Object.keys(extracted).length>0) {
       applyExtracted(extracted);
@@ -1478,46 +1474,65 @@ function parseGasTariffs(rawText) {
   var norm = rawText.replace(/,/g,'.').replace(/\r/g,'');
   var lines = norm.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
 
-  // ── ENGIE: search for the characteristic number pattern across ALL lines ──
-  // Pattern: [ach_b0_ht~54 ach_b0_ttc~81 ach_b0_kwh~0.04 ach_b0_kwh_ttc~0.05 ach_b1_ht~186 ach_b1_ttc~278...]
-  // Try each line, and also the full text joined
-  var engieCandidates = lines.slice(); // all lines
-  engieCandidates.push(norm.replace(/\n/g,' ')); // also full text as one string
-  for (var li = 0; li < engieCandidates.length; li++) {
-    var l = engieCandidates[li];
-    var nums = (l.match(/\b\d+\.\d+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-    // Find ach_b0 start: ~54 ~81 ~0.04 ~0.05
-    var si = -1;
-    for (var i = 0; i < nums.length - 19; i++) {
-      if (nums[i]>40&&nums[i]<70 && nums[i+1]>60&&nums[i+1]<100 &&
-          nums[i+2]>0.03&&nums[i+2]<0.08 && nums[i+3]>0.04&&nums[i+3]<0.10) { si=i; break; }
+  // ── ENGIE: line-by-line parser using actual browser text format ─────
+  // Format: "jusqu'à 3 999 kWh  HT  TTC  kwh_HT  kwh_TTC" (B0, all on one line)
+  //         "de 4 000 à 29 999 kWh  kwh_HT  kwh_TTC" then next line "HT  TTC" (B1 split)
+  (function(){
+    var fou={}, ach={};
+    for(var li=0;li<lines.length;li++){
+      var l=lines[li];
+      var nums=(l.match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+      // B0: "jusqu'à 3 999 kWh  HT  TTC  kwh_HT  kwh_TTC" (4 values, abo pairs 40-300)
+      if((l.indexOf('jusqu')>=0||l.indexOf('3 999')>=0||l.indexOf('3999')>=0)&&nums.length===4){
+        var ht=nums[0],ttc=nums[1],kht=nums[2],kttc=nums[3];
+        if(ht>40&&ht<300&&ttc>ht&&kht>0.03&&kttc>0.04&&kttc<0.12){
+          if(ttc<75) fou.b0={abo:ttc,kwh:kttc}; // Fourniture ~65
+          else ach.b0={abo:ttc,kwh:kttc}; // Acheminement ~81
+        }
+      }
+      // B1 Acheminement: "de 4 000  HT  TTC  kwh_HT  kwh_TTC" (4 values, HT>100)
+      if((l.indexOf('4 000')>=0||l.indexOf('4000')>=0)&&nums.length===4){
+        var ht=nums[0],ttc=nums[1],kht=nums[2],kttc=nums[3];
+        if(ht>100&&ttc>ht&&kht>0.01&&kttc>0.01&&kttc<0.06){
+          ach.b1={abo:ttc,kwh:kttc};
+        }
+      }
+      // B1 Fourniture: "de 4 000  kwh_HT  kwh_TTC" (2 kwh values), abo on next line
+      if((l.indexOf('4 000')>=0||l.indexOf('4000')>=0)&&nums.length===2){
+        var kht=nums[0],kttc=nums[1];
+        if(kht>0.03&&kttc>0.05&&kttc<0.12){
+          // Find abo on next non-empty line
+          for(var j=li+1;j<Math.min(li+4,lines.length);j++){
+            var nn=(lines[j].match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf)
+                    .filter(function(v){return v&&v>50&&v<200;});
+            if(nn.length>=2){fou.b1={abo:Math.max.apply(null,nn),kwh:kttc};break;}
+            if(nn.length===1){fou.b1={abo:nn[0],kwh:kttc};break;}
+          }
+        }
+      }
     }
-    if (si < 0) continue;
-    var n = nums.slice(si);
-    var ach_b0_ttc=n[1], ach_b0_kwh=n[3], ach_b1_ttc=n[5], ach_b1_kwh=n[7];
-    // Find fourniture start (after duplicate, ~54 ~65 ~0.04 ~0.07)
-    var fs = -1;
-    for (var i = 12; i < n.length-3; i++) {
-      if (n[i]>40&&n[i]<70 && n[i+1]>50&&n[i+1]<80 &&
-          n[i+2]>0.03&&n[i+2]<0.08 && n[i+3]>0.05&&n[i+3]<0.10) { fs=i; break; }
+    // Need all 4 components
+    if(!fou.b0||!ach.b0||!fou.b1||!ach.b1) return;
+    d.g_abo_b0=(fou.b0.abo+ach.b0.abo)/12;
+    d.g_abo_b1=(fou.b1.abo+ach.b1.abo)/12;
+    var b0k=fou.b0.kwh+ach.b0.kwh, b1k=fou.b1.kwh+ach.b1.kwh;
+    // Find obligations (lines with 6 small values 0.01-0.05)
+    var ob0=0.02255, ob1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
+    var oblFound=[];
+    for(var li=0;li<lines.length;li++){
+      var nums=(lines[li].match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+      if(nums.length===6&&nums[0]>0.01&&nums[0]<0.03&&nums[5]>0.01&&nums[5]<0.06){
+        oblFound.push(nums);
+      }
     }
-    if (fs < 0) continue;
-    var fou_b0_ttc=n[fs+1], fou_b0_kwh=n[fs+3], fou_b1_ttc=n[fs+5], fou_b1_kwh=n[fs+7];
-    d.g_abo_b0 = (ach_b0_ttc+fou_b0_ttc)/12;
-    d.g_abo_b1 = (ach_b1_ttc+fou_b1_ttc)/12;
-    var b0k = ach_b0_kwh+fou_b0_kwh, b1k = ach_b1_kwh+fou_b1_kwh;
-    // Obligations
-    var os=-1;
-    for (var i=fs+8;i<n.length-5;i++) {
-      if (n[i]>0.015&&n[i]<0.022&&n[i+1]>0.02&&n[i+1]<0.03&&n[i+2]>0.02&&n[i+2]<0.035){os=i;break;}
+    if(oblFound.length>0){
+      ob0=oblFound[0][1]; // GrA B0 TTC
+      ob1=oblFound.slice(0,6).map(function(r){return r[3];}); // GrA-F B1 TTC
     }
-    var ob0=(os>=0)?n[os+1]:0.02255, ob1=[];
-    if(os>=0){for(var g=0;g<8&&os+g*6+3<n.length;g++)ob1.push(n[os+g*6+3]);}
-    if(!ob1.length)ob1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
     for(var z=1;z<=6;z++) d['g_kwh_b0_z'+z]=+((b0k+ob0).toPrecision(5));
     for(var z=1;z<=6;z++) d['g_kwh_b1_z'+z]=+((b1k+(ob1[z-1]||ob1[0])).toPrecision(5));
-    return d;
-  }
+  })();
+  if(d.g_abo_b0) return d;
 
   // ── HAPPE: line "TTC HTT TTC 159.39 0.10124 0.14116 0.10723 0.10795..." ──
   for (var li = 0; li < lines.length; li++) {
