@@ -1129,7 +1129,7 @@ async function handlePDF(event) {
   try {
     const text = await extractPDFText(file);
     console.log('RAW_TEXT_START');
-    console.log(text.substring(0,2000));
+    console.log(text.slice(-3000));
     console.log('RAW_TEXT_END');
     const extracted = currentEnergy==='elec'?parseElecTariffs(text):parseGasTariffs(text);
     console.log('EXTRACTED:', JSON.stringify(extracted));
