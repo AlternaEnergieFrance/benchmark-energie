@@ -4,29 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Benchmark Énergie — Alterna Energie France</title>
-<script>
-// Load pdf.js and set up worker as blob URL to bypass CSP restrictions
-(function() {
-  var s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-  s.onload = function() {
-    // Fetch worker and create blob URL for same-origin compliance  
-    fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js')
-      .then(function(r){ return r.text(); })
-      .then(function(code){
-        var blob = new Blob([code], {type:'application/javascript'});
-        pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
-        window._pdfJsReady = true;
-      })
-      .catch(function(){
-        // Fallback: use CDN worker directly
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        window._pdfJsReady = true;
-      });
-  };
-  document.head.appendChild(s);
-})();
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -678,7 +656,10 @@ function buildMonthBar() {
     var border = active ? 'var(--accent)' : 'var(--border)';
     var bg = active ? 'var(--accent)' : 'transparent';
     var col = active ? 'white' : 'var(--text2)';
-    return '<button ondblclick="renameMonth(' + JSON.stringify(k) + ')" onclick="loadMonth(' + JSON.stringify(k) + ')" title="Double-clic pour renommer" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>';
+    return '<span style="display:inline-flex;align-items:center;gap:1px;">'
+      + '<button ondblclick="renameMonth(' + JSON.stringify(k) + ')" onclick="loadMonth(' + JSON.stringify(k) + ')" title="Double-clic pour renommer" style="font-size:11px;padding:3px 8px;border-radius:4px 0 0 4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>'
+      + '<button onclick="deleteMonth(' + JSON.stringify(k) + ')" title="Supprimer ce mois" style="font-size:10px;padding:3px 5px;border-radius:0 4px 4px 0;border:1px solid ' + border + ';border-left:none;background:' + bg + ';color:' + (active?'rgba(255,255,255,0.7)':'var(--text3)') + ';cursor:pointer;line-height:1;">✕</button>'
+      + '</span>';
   }).join('');
 
   return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">'
@@ -687,6 +668,24 @@ function buildMonthBar() {
     + '<button onclick="loadMonth(null)" ondblclick="renameEnCours()" title="Double-clic pour renommer" style="' + enCoursStyle + '">En cours</button>'
     + '<button onclick="nouveauMois()" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;font-weight:600;">+ Nouveau</button>'
     + '</div>';
+}
+
+function deleteMonth(key) {
+  if(!confirm('Supprimer le mois « ' + getMonthLabel(key) + ' » ?')) return;
+  delete history[key];
+  if(window.monthLabels) delete monthLabels[key];
+  if(currentMonthKey === key) {
+    currentMonthKey = null;
+    // Reset to empty working state
+    suppliers = SUPPLIERS.map(function(n){ return {name:n,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+    suppliersGaz = SUPPLIERS_GAZ.map(function(n){ return {name:n,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+  }
+  try {
+    localStorage.setItem('benchmark_history', JSON.stringify(history));
+    localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels||{}));
+  } catch(e){}
+  renderSidebar(); renderContent();
+  showToast('✓ Mois supprimé', 'success');
 }
 
 function renameMonth(key) {
@@ -1164,6 +1163,7 @@ async function handlePDF(event) {
 async function extractPDFText(file) {
   const ab = await file.arrayBuffer();
   // Disable worker to avoid fake worker issues with local files
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const loadingTask = pdfjsLib.getDocument({data: new Uint8Array(ab)});
   let pdf;
   try {
@@ -1907,26 +1907,46 @@ function saveCurrentMonth(){
   showToast('✓ Benchmark '+getMonthLabel(key)+' sauvegardé','success');
   renderContent();
 }
+// Save working state before loading a history month
+var _workingSuppliers = null, _workingSuppliersGaz = null, _workingREF = null;
+
 function loadMonth(key){
-  currentMonthKey=key;
-  if(key===null){
-    // Return to working data
-    renderSidebar();
-    renderContent();
+  currentMonthKey = key;
+  if(key === null) {
+    // Return to working (empty) state
+    if(_workingSuppliers !== null) {
+      suppliers = _workingSuppliers;
+      suppliersGaz = _workingSuppliersGaz;
+      Object.assign(REF.elec, _workingREF.elec||{});
+      Object.assign(REF.gas, _workingREF.gas||{});
+      _workingSuppliers = null;
+    } else {
+      // No saved working state: reset to empty
+      suppliers = SUPPLIERS.map(function(n){ return {name:n,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+      suppliersGaz = SUPPLIERS_GAZ.map(function(n){ return {name:n,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+    }
+    currentSupplier = null;
+    renderSidebar(); renderContent();
     return;
   }
-  var m=history[key];
-  if(m){
-    // Temporarily load history month data for viewing
-    if(m.suppliers) suppliers=JSON.parse(JSON.stringify(m.suppliers));
-    if(m.suppliersGaz) suppliersGaz=JSON.parse(JSON.stringify(m.suppliersGaz));
-    if(m.REF){
-      if(m.REF.elec) Object.assign(REF.elec,m.REF.elec);
-      if(m.REF.gas) Object.assign(REF.gas,m.REF.gas);
+  var m = history[key];
+  if(m) {
+    // Save current working state if not already saved
+    if(_workingSuppliers === null) {
+      _workingSuppliers = JSON.parse(JSON.stringify(suppliers));
+      _workingSuppliersGaz = JSON.parse(JSON.stringify(suppliersGaz));
+      _workingREF = JSON.parse(JSON.stringify(REF));
     }
+    // Load history month
+    if(m.suppliers) suppliers = JSON.parse(JSON.stringify(m.suppliers));
+    if(m.suppliersGaz) suppliersGaz = JSON.parse(JSON.stringify(m.suppliersGaz));
+    if(m.REF) {
+      if(m.REF.elec) Object.assign(REF.elec, m.REF.elec);
+      if(m.REF.gas) Object.assign(REF.gas, m.REF.gas);
+    }
+    currentSupplier = null;
   }
-  renderSidebar();
-  renderContent();
+  renderSidebar(); renderContent();
 }
 function loadCurrentWork(){currentMonthKey=null;renderContent();}
 function deleteMonth(key){
@@ -2499,6 +2519,15 @@ function promptModalCancel() {
 
 </script>
 
+<div id="confirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface,#fff);border-radius:12px;padding:24px;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div id="confirmModalMsg" style="font-size:14px;font-weight:500;margin-bottom:16px;color:var(--text1,#111);"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="confirmModalCancel()" style="padding:7px 16px;border:1px solid var(--border,#ddd);background:transparent;border-radius:6px;cursor:pointer;font-size:13px;">Annuler</button>
+      <button onclick="confirmModalOk()" style="padding:7px 16px;background:#c00;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;">Supprimer</button>
+    </div>
+  </div>
+</div>
 <div id="promptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--surface,#fff);border-radius:12px;padding:24px;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div id="promptModalTitle" style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text1,#111);"></div>
