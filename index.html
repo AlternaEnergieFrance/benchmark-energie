@@ -4,7 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Benchmark Énergie — Alterna Energie France</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// Load pdf.js and set up worker as blob URL to bypass CSP restrictions
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+  s.onload = function() {
+    // Fetch worker and create blob URL for same-origin compliance  
+    fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js')
+      .then(function(r){ return r.text(); })
+      .then(function(code){
+        var blob = new Blob([code], {type:'application/javascript'});
+        pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+        window._pdfJsReady = true;
+      })
+      .catch(function(){
+        // Fallback: use CDN worker directly
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        window._pdfJsReady = true;
+      });
+  };
+  document.head.appendChild(s);
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -189,7 +211,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div class="toast" id="toast"></div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
 // ── STATE ──
 let currentEnergy = 'elec';
@@ -1142,13 +1164,7 @@ async function handlePDF(event) {
 async function extractPDFText(file) {
   const ab = await file.arrayBuffer();
   // Disable worker to avoid fake worker issues with local files
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-  const loadingTask = pdfjsLib.getDocument({
-    data: new Uint8Array(ab),
-    useWorkerFetch: false,
-    isEvalSupported: false,
-    useSystemFonts: true
-  });
+  const loadingTask = pdfjsLib.getDocument({data: new Uint8Array(ab)});
   let pdf;
   try {
     pdf = await loadingTask.promise;
