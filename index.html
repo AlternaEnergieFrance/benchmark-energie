@@ -223,12 +223,15 @@ const PRELOAD = {
     },
     'Engie': {
       offer:'ELEC REFERENCE 3 ANS',
-      '3':{abo_base:12.17,kwh_base:0.2144},
-      '6':{abo_base:15.99,kwh_base:0.2144,abo_hc:17.66,kwh_hp:0.2427,kwh_hc:0.1798},
-      '9':{abo_base:19.81,kwh_base:0.2147,abo_hc:22.31,kwh_hp:0.2427,kwh_hc:0.1798},
-      '12':{abo_base:23.63,kwh_base:0.2147,abo_hc:26.97,kwh_hp:0.2427,kwh_hc:0.1798},
-      '15':{abo_base:28.87,kwh_base:0.2147,abo_hc:31.62,kwh_hp:0.2427,kwh_hc:0.1798},
-      '18':{abo_base:31.27,kwh_base:0.2147,abo_hc:36.28,kwh_hp:0.2427,kwh_hc:0.1798}
+      '3': {abo_base:12.17,kwh_base:0.20016},
+      '6': {abo_base:15.99,kwh_base:0.20016,abo_hc:17.66,kwh_hp:0.20431,kwh_hc:0.16536},
+      '9': {abo_base:19.81,kwh_base:0.20016,abo_hc:22.31,kwh_hp:0.20431,kwh_hc:0.16536},
+      '12':{abo_base:23.63,kwh_base:0.20016,abo_hc:26.97,kwh_hp:0.20431,kwh_hc:0.16536},
+      '15':{abo_base:27.45,kwh_base:0.20016,abo_hc:31.62,kwh_hp:0.20431,kwh_hc:0.16536},
+      '18':{abo_base:31.27,kwh_base:0.20016,abo_hc:36.28,kwh_hp:0.20431,kwh_hc:0.16536},
+      '24':{abo_base:39.04,kwh_base:0.20016,abo_hc:45.59,kwh_hp:0.20431,kwh_hc:0.16536},
+      '30':{abo_base:46.82,kwh_base:0.20016,abo_hc:54.91,kwh_hp:0.20431,kwh_hc:0.16536},
+      '36':{abo_base:54.60,kwh_base:0.20016,abo_hc:64.27,kwh_hp:0.20431,kwh_hc:0.16536}
     },
     'Eni Plénitude': {
       offer:'Pleniweb 1 an',
@@ -429,16 +432,16 @@ function setSuppliersList(list) { if(currentEnergy === 'elec') suppliers = list;
 // Reference data (Alterna)
 const REF = {
   elec:{
-    offerName:'Sérénité Verte 12 mois', pdfName:null,
-    abo_6_base:16.65, kwh_6_base:0.1783,
-    abo_9_base:21.56, kwh_9_base:0.1771,
-    abo_6_hc:16.83,  hp_6:0.1894, hc_6:0.1457,
-    abo_9_hc:21.83,  hp_9:0.1894, hc_9:0.1457
+    offerName:'', pdfName:null,
+    abo_6_base:null, kwh_6_base:null,
+    abo_9_base:null, kwh_9_base:null,
+    abo_6_hc:null,  hp_6:null, hc_6:null,
+    abo_9_hc:null,  hp_9:null, hc_9:null
   },
   gas:{
-    offerName:'Gaz Essentiel -5% PRVG', pdfName:null,
-    abo_b0:159.23/12, kwh_b0_z1:0.1421,
-    abo_b1:367.88/12, kwh_b1_z1:0.1122
+    offerName:'', pdfName:null,
+    abo_b0:null, kwh_b0_z1:null,
+    abo_b1:null, kwh_b1_z1:null
   }
 };
 let pendingRefFile = {elec:null, gas:null};
@@ -453,11 +456,10 @@ const CONSOS = {
 // ── INIT ──
 function init() {
   try { const s=localStorage.getItem('benchmark_history'); if(s) history=JSON.parse(s); } catch(e){}
-  try { const sg=localStorage.getItem('benchmark_suppliers_gaz'); if(sg) suppliersGaz=JSON.parse(sg); } catch(e){}
-  try { const se=localStorage.getItem('benchmark_suppliers_elec'); if(se) suppliers=JSON.parse(se); } catch(e){}
-  try { const sr=localStorage.getItem('benchmark_ref'); if(sr){ var savedRef=JSON.parse(sr); if(savedRef.elec) Object.assign(REF.elec,savedRef.elec); if(savedRef.gas) Object.assign(REF.gas,savedRef.gas); } } catch(e){}
+  // NE PAS restaurer les fournisseurs en cours — toujours vide au démarrage
+  // Les données ne persistent que dans l'historique (bouton Sauvegarder)
+  // REF aussi vide au démarrage — saisie manuelle ou chargement depuis historique
   try { const sl=localStorage.getItem('benchmark_month_labels'); if(sl) window.monthLabels=JSON.parse(sl); else window.monthLabels={}; } catch(e){ window.monthLabels={}; }
-  applyPreload();
   const now = new Date();
   document.getElementById('monthDisplay').textContent =
     now.toLocaleDateString('fr-FR',{month:'short',year:'numeric'});
@@ -531,18 +533,18 @@ function renderSidebar() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Abonnement (€/mois)</div>
           <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Prix kWh (€/kWh)</div>
-          <div class="ref-field"><label>Abo 6kVA Base</label><input type="text" id="r_abo_6b" value="${REF.elec.abo_6_base}" oninput="REF.elec.abo_6_base=parseFloat(this.value)||REF.elec.abo_6_base;renderResults()"></div>
-          <div class="ref-field"><label>kWh 6kVA Base</label><input type="text" id="r_k6b" value="${REF.elec.kwh_6_base}" oninput="REF.elec.kwh_6_base=parseFloat(this.value)||REF.elec.kwh_6_base;renderResults()"></div>
-          <div class="ref-field"><label>Abo 9kVA Base</label><input type="text" id="r_abo_9b" value="${REF.elec.abo_9_base}" oninput="REF.elec.abo_9_base=parseFloat(this.value)||REF.elec.abo_9_base;renderResults()"></div>
-          <div class="ref-field"><label>kWh 9kVA Base</label><input type="text" id="r_k9b" value="${REF.elec.kwh_9_base}" oninput="REF.elec.kwh_9_base=parseFloat(this.value)||REF.elec.kwh_9_base;renderResults()"></div>
-          <div class="ref-field"><label>Abo 6kVA HC</label><input type="text" id="r_abo_6h" value="${REF.elec.abo_6_hc}" oninput="REF.elec.abo_6_hc=parseFloat(this.value)||REF.elec.abo_6_hc;renderResults()"></div>
-          <div class="ref-field"><label>HP 6kVA</label><input type="text" id="r_hp6" value="${REF.elec.hp_6}" oninput="REF.elec.hp_6=parseFloat(this.value)||REF.elec.hp_6;renderResults()"></div>
-          <div class="ref-field"><label>Abo 9kVA HC</label><input type="text" id="r_abo_9h" value="${REF.elec.abo_9_hc}" oninput="REF.elec.abo_9_hc=parseFloat(this.value)||REF.elec.abo_9_hc;renderResults()"></div>
-          <div class="ref-field"><label>HC 6kVA</label><input type="text" id="r_hc6" value="${REF.elec.hc_6}" oninput="REF.elec.hc_6=parseFloat(this.value)||REF.elec.hc_6;renderResults()"></div>
+          <div class="ref-field"><label>Abo 6kVA Base</label><input type="text" id="r_abo_6b" value="${REF.elec.abo_6_base||''}" oninput="REF.elec.abo_6_base=parseFloat(this.value)||REF.elec.abo_6_base;renderResults()"></div>
+          <div class="ref-field"><label>kWh 6kVA Base</label><input type="text" id="r_k6b" value="${REF.elec.kwh_6_base||''}" oninput="REF.elec.kwh_6_base=parseFloat(this.value)||REF.elec.kwh_6_base;renderResults()"></div>
+          <div class="ref-field"><label>Abo 9kVA Base</label><input type="text" id="r_abo_9b" value="${REF.elec.abo_9_base||''}" oninput="REF.elec.abo_9_base=parseFloat(this.value)||REF.elec.abo_9_base;renderResults()"></div>
+          <div class="ref-field"><label>kWh 9kVA Base</label><input type="text" id="r_k9b" value="${REF.elec.kwh_9_base||''}" oninput="REF.elec.kwh_9_base=parseFloat(this.value)||REF.elec.kwh_9_base;renderResults()"></div>
+          <div class="ref-field"><label>Abo 6kVA HC</label><input type="text" id="r_abo_6h" value="${REF.elec.abo_6_hc||''}" oninput="REF.elec.abo_6_hc=parseFloat(this.value)||REF.elec.abo_6_hc;renderResults()"></div>
+          <div class="ref-field"><label>HP 6kVA</label><input type="text" id="r_hp6" value="${REF.elec.hp_6||''}" oninput="REF.elec.hp_6=parseFloat(this.value)||REF.elec.hp_6;renderResults()"></div>
+          <div class="ref-field"><label>Abo 9kVA HC</label><input type="text" id="r_abo_9h" value="${REF.elec.abo_9_hc||''}" oninput="REF.elec.abo_9_hc=parseFloat(this.value)||REF.elec.abo_9_hc;renderResults()"></div>
+          <div class="ref-field"><label>HC 6kVA</label><input type="text" id="r_hc6" value="${REF.elec.hc_6||''}" oninput="REF.elec.hc_6=parseFloat(this.value)||REF.elec.hc_6;renderResults()"></div>
           <div class="ref-field" style="grid-column:1"></div>
-          <div class="ref-field"><label>HP 9kVA</label><input type="text" id="r_hp9" value="${REF.elec.hp_9}" oninput="REF.elec.hp_9=parseFloat(this.value)||REF.elec.hp_9;renderResults()"></div>
+          <div class="ref-field"><label>HP 9kVA</label><input type="text" id="r_hp9" value="${REF.elec.hp_9||''}" oninput="REF.elec.hp_9=parseFloat(this.value)||REF.elec.hp_9;renderResults()"></div>
           <div class="ref-field" style="grid-column:1"></div>
-          <div class="ref-field"><label>HC 9kVA</label><input type="text" id="r_hc9" value="${REF.elec.hc_9}" oninput="REF.elec.hc_9=parseFloat(this.value)||REF.elec.hc_9;renderResults()"></div>
+          <div class="ref-field"><label>HC 9kVA</label><input type="text" id="r_hc9" value="${REF.elec.hc_9||''}" oninput="REF.elec.hc_9=parseFloat(this.value)||REF.elec.hc_9;renderResults()"></div>
         </div>
       </div>
     </div>`;
@@ -569,10 +571,10 @@ function renderSidebar() {
           <input type="text" value="${REF.gas.offerName}" style="width:100%;padding:5px 7px;border:1px solid #F0C090;border-radius:5px;font-size:11px;background:white;color:var(--text);outline:none;" oninput="REF.gas.offerName=this.value">
         </div>
         <div class="ref-grid">
-          <div class="ref-field gas"><label>Abo B0 (€/mois)</label><input type="number" id="rg_abo_b0" value="${(REF.gas.abo_b0).toFixed(2)}" step="any" oninput="REF.gas.abo_b0=parseFloat(this.value)"></div>
-          <div class="ref-field gas"><label>kWh B0 Zone1 (€/kWh)</label><input type="number" id="rg_k_b0" value="${REF.gas.kwh_b0_z1.toFixed(4)}" step="0.0001" oninput="REF.gas.kwh_b0_z1=parseFloat(this.value)"></div>
-          <div class="ref-field gas"><label>Abo B1 (€/mois)</label><input type="number" id="rg_abo_b1" value="${(REF.gas.abo_b1).toFixed(2)}" step="any" oninput="REF.gas.abo_b1=parseFloat(this.value)"></div>
-          <div class="ref-field gas"><label>kWh B1 Zone1 (€/kWh)</label><input type="number" id="rg_k_b1" value="${REF.gas.kwh_b1_z1.toFixed(4)}" step="0.0001" oninput="REF.gas.kwh_b1_z1=parseFloat(this.value)"></div>
+          <div class="ref-field gas"><label>Abo B0 (€/mois)</label><input type="number" id="rg_abo_b0" value="${REF.gas.abo_b0!=null?REF.gas.abo_b0.toFixed(2):''}" step="any" oninput="REF.gas.abo_b0=parseFloat(this.value)"></div>
+          <div class="ref-field gas"><label>kWh B0 Zone1 (€/kWh)</label><input type="number" id="rg_k_b0" value="${REF.gas.kwh_b0_z1!=null?REF.gas.kwh_b0_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b0_z1=parseFloat(this.value)"></div>
+          <div class="ref-field gas"><label>Abo B1 (€/mois)</label><input type="number" id="rg_abo_b1" value="${REF.gas.abo_b1!=null?REF.gas.abo_b1.toFixed(2):''}" step="any" oninput="REF.gas.abo_b1=parseFloat(this.value)"></div>
+          <div class="ref-field gas"><label>kWh B1 Zone1 (€/kWh)</label><input type="number" id="rg_k_b1" value="${REF.gas.kwh_b1_z1!=null?REF.gas.kwh_b1_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b1_z1=parseFloat(this.value)"></div>
         </div>
       </div>
     </div>`;
@@ -625,21 +627,22 @@ function selectSupplier(i) {
 }
 
 function addSupplier() {
-  const name = prompt('Nom du fournisseur :');
-  if (!name) return;
-  var newSup = {name:name.trim(), url:''};
-  if(currentEnergy==='elec') {
-    newSup.elec = {data:{},status:'empty',pdfName:null,decomposed:false};
-    suppliers.push(newSup);
-    currentSupplier = suppliers.length - 1;
-  } else {
-    newSup.gas = {data:{},status:'empty',pdfName:null,decomposed:false};
-    suppliersGaz.push(newSup);
-    currentSupplier = suppliersGaz.length - 1;
-  }
-  renderSidebar();
-  renderContent();
+  showPromptModal('Nom du fournisseur :', '', function(name) {
+    if (!name) return;
+    var newSup;
+    if(currentEnergy==='elec'){
+      newSup={name:name,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}};
+      suppliers.push(newSup);
+      currentSupplier=suppliers.length-1;
+    } else {
+      newSup={name:name,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}};
+      suppliersGaz.push(newSup);
+      currentSupplier=suppliersGaz.length-1;
+    }
+    renderSidebar(); renderContent();
+  });
 }
+
 
 function buildMonthBar() {
   var keys = Object.keys(history).sort();
@@ -666,47 +669,45 @@ function buildMonthBar() {
 
 function renameMonth(key) {
   var current = getMonthLabel(key);
-  var newLabel = prompt('Renommer ce mois :', current);
-  if(!newLabel || !newLabel.trim() || newLabel.trim()===current) return;
-  if(!window.monthLabels) window.monthLabels = {};
-  monthLabels[key] = newLabel.trim();
-  try{ localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels)); }catch(e){}
-  renderContent();
+  showPromptModal('Renommer ce mois :', current, function(newLabel) {
+    if(!newLabel || !newLabel.trim() || newLabel.trim()===current) return;
+    if(!window.monthLabels) window.monthLabels = {};
+    monthLabels[key] = newLabel.trim();
+    try{ localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels)); }catch(e){}
+    renderContent();
+  });
 }
 
 function renameEnCours() {
   var current = monthLabels['__en_cours__'] || 'En cours';
-  var newLabel = prompt('Renommer « En cours » :', current);
-  if(!newLabel || !newLabel.trim()) return;
-  if(!window.monthLabels) window.monthLabels = {};
-  monthLabels['__en_cours__'] = newLabel.trim();
-  try{ localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels)); }catch(e){}
-  renderContent();
+  showPromptModal('Renommer « En cours » :', current, function(newLabel) {
+    if(!newLabel || !newLabel.trim()) return;
+    if(!window.monthLabels) window.monthLabels = {};
+    monthLabels['__en_cours__'] = newLabel.trim();
+    try{ localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels)); }catch(e){}
+    renderContent();
+  });
 }
 
 function nouveauMois() {
-  var name = prompt('Nom du nouveau mois (ex: Juil 2026) :');
-  if(!name || !name.trim()) return;
-  // Create a unique key based on timestamp
-  var key = 'custom-' + Date.now();
-  if(!window.monthLabels) window.monthLabels = {};
-  monthLabels[key] = name.trim();
-  // Initialize with current suppliers/REF data as starting point
-  history[key] = {
-    savedAt: new Date().toISOString(),
-    monthKey: key,
-    suppliers: JSON.parse(JSON.stringify(suppliers)),
-    suppliersGaz: JSON.parse(JSON.stringify(suppliersGaz)),
-    REF: JSON.parse(JSON.stringify(REF))
-  };
-  try{
-    localStorage.setItem('benchmark_history', JSON.stringify(history));
-    localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels));
-  }catch(e){}
-  currentMonthKey = key;
-  renderContent();
-  showToast('✓ Nouveau mois « '+name.trim()+' » créé', 'success');
+  showPromptModal('Nom du nouveau mois (ex: Juil 2026) :', '', function(name) {
+    if(!name || !name.trim()) return;
+    var key = 'custom-' + Date.now();
+    if(!window.monthLabels) window.monthLabels = {};
+    monthLabels[key] = name.trim();
+    suppliers = SUPPLIERS.map(function(n){ return {name:n,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+    suppliersGaz = SUPPLIERS_GAZ.map(function(n){ return {name:n,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+    REF.elec = {offerName:'',pdfName:null,abo_6_base:null,kwh_6_base:null,abo_9_base:null,kwh_9_base:null,abo_6_hc:null,hp_6:null,hc_6:null,abo_9_hc:null,hp_9:null,hc_9:null};
+    REF.gas  = {offerName:'',pdfName:null,abo_b0:null,kwh_b0_z1:null,abo_b1:null,kwh_b1_z1:null};
+    currentSupplier = null;
+    currentMonthKey = key;
+    history[key] = {savedAt:new Date().toISOString(),monthKey:key,suppliers:JSON.parse(JSON.stringify(suppliers)),suppliersGaz:JSON.parse(JSON.stringify(suppliersGaz)),REF:JSON.parse(JSON.stringify(REF))};
+    try{localStorage.setItem('benchmark_history',JSON.stringify(history));localStorage.setItem('benchmark_month_labels',JSON.stringify(monthLabels));}catch(e){}
+    currentTab='results'; renderSidebar(); renderContent();
+    showToast('✓ Nouveau mois « '+name.trim()+' » créé', 'success');
+  });
 }
+
 
 function renderResults() {
   if (currentTab === 'results') {
@@ -1109,12 +1110,7 @@ function saveSupplier(e) {
   bucket.status = (d.abo_6_base || d.abo_9_base || d.abo_6_hc || d.g_abo_b0 || d.g_abo_b1) ? 'done' : 'partial';
   renderSidebar();
   showToast('✓ '+s.name+' ('+(currentEnergy==='elec'?'⚡':'🔥')+') sauvegardé','success');
-  // Auto-persist to localStorage so data survives navigation
-  try {
-    localStorage.setItem('benchmark_suppliers_elec', JSON.stringify(suppliers));
-    localStorage.setItem('benchmark_suppliers_gaz', JSON.stringify(suppliersGaz));
-    localStorage.setItem('benchmark_ref', JSON.stringify(REF));
-  } catch(e){}
+  // Data stays in memory only — saved to history via Sauvegarder button
   // Classement temps réel
   var resTab = document.getElementById('tabResults');
   if (resTab && resTab.style.display !== 'none') resTab.innerHTML = renderResultsHTML();
@@ -1128,6 +1124,8 @@ async function handlePDF(event) {
   document.getElementById('extractLabel').innerHTML='<span class="spinner"></span>…';
   try {
     const text = await extractPDFText(file);
+    if(!text||text.length<10){showToast('PDF vide ou illisible','error');return;}
+    showToast('PDF lu: '+text.length+' car, énergie: '+currentEnergy,'success');
     const extracted = currentEnergy==='elec'?parseElecTariffs(text):parseGasTariffs(text);
     getSuppliersList()[currentSupplier][currentEnergy].pdfName = file.name;
     if (Object.keys(extracted).length>0) {
@@ -1143,7 +1141,20 @@ async function handlePDF(event) {
 }
 async function extractPDFText(file) {
   const ab = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+  // Disable worker to avoid fake worker issues with local files
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+  const loadingTask = pdfjsLib.getDocument({
+    data: new Uint8Array(ab),
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    useSystemFonts: true
+  });
+  let pdf;
+  try {
+    pdf = await loadingTask.promise;
+  } catch(e) {
+    throw new Error('PDF load failed: '+e.message);
+  }
   let txt = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -1177,6 +1188,10 @@ async function extractPDFText(file) {
   return txt;
 }
 function parseElecTariffs(rawText) {
+  // Engie decomposed fiche descriptive: skip, PRELOAD values already correct
+  if(rawText.indexOf('Fourniture comptage')>=0||rawText.indexOf('Fourniture  comptage')>=0){
+    return {};
+  }
   var rawNorm = rawText.replace(/,/g,'.');
   var rawSplit = rawNorm.replace(/([\d]+\.[\d]+)(0\.[\d]+)/g,'$1 $2');
   var lines  = rawNorm.split('\n').map(function(l){return l.trim();}).filter(Boolean);
@@ -1474,65 +1489,71 @@ function parseGasTariffs(rawText) {
   var norm = rawText.replace(/,/g,'.').replace(/\r/g,'');
   var lines = norm.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
 
-  // ── ENGIE: line-by-line parser using actual browser text format ─────
-  // Format: "jusqu'à 3 999 kWh  HT  TTC  kwh_HT  kwh_TTC" (B0, all on one line)
-  //         "de 4 000 à 29 999 kWh  kwh_HT  kwh_TTC" then next line "HT  TTC" (B1 split)
-  (function(){
-    var fou={}, ach={};
-    for(var li=0;li<lines.length;li++){
-      var l=lines[li];
-      var nums=(l.match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-      // B0: "jusqu'à 3 999 kWh  HT  TTC  kwh_HT  kwh_TTC" (4 values, abo pairs 40-300)
-      if((l.indexOf('jusqu')>=0||l.indexOf('3 999')>=0||l.indexOf('3999')>=0)&&nums.length===4){
-        var ht=nums[0],ttc=nums[1],kht=nums[2],kttc=nums[3];
-        if(ht>40&&ht<300&&ttc>ht&&kht>0.03&&kttc>0.04&&kttc<0.12){
-          if(ttc<75) fou.b0={abo:ttc,kwh:kttc}; // Fourniture ~65
-          else ach.b0={abo:ttc,kwh:kttc}; // Acheminement ~81
-        }
+  // ── ENGIE: flat line-by-line, no nested functions ─────────────────
+  var engie_fou_b0_abo=0, engie_fou_b0_kwh=0;
+  var engie_ach_b0_abo=0, engie_ach_b0_kwh=0;
+  var engie_fou_b1_abo=0, engie_fou_b1_kwh=0;
+  var engie_ach_b1_abo=0, engie_ach_b1_kwh=0;
+  var engie_ob0=0.02255;
+  var engie_ob1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
+
+  for(var ei=0;ei<lines.length;ei++){
+    var el=lines[ei];
+    var en=(el.match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+
+    // B0 lines: "jusqu'à 3 999 kWh  HT  TTC  kwh_HT  kwh_TTC"
+    if(en.length===4 && (el.indexOf('jusqu')>=0||el.indexOf('3 999')>=0)){
+      var et=en[1], ek=en[3];
+      if(en[0]>40&&en[0]<300&&et>en[0]&&en[2]>0.03&&ek>0.04&&ek<0.12){
+        if(et<75){ engie_fou_b0_abo=et; engie_fou_b0_kwh=ek; }
+        else      { engie_ach_b0_abo=et; engie_ach_b0_kwh=ek; }
       }
-      // B1 Acheminement: "de 4 000  HT  TTC  kwh_HT  kwh_TTC" (4 values, HT>100)
-      if((l.indexOf('4 000')>=0||l.indexOf('4000')>=0)&&nums.length===4){
-        var ht=nums[0],ttc=nums[1],kht=nums[2],kttc=nums[3];
-        if(ht>100&&ttc>ht&&kht>0.01&&kttc>0.01&&kttc<0.06){
-          ach.b1={abo:ttc,kwh:kttc};
-        }
+    }
+
+    // B1 Acheminement: "de 4 000  HT  TTC  kwh_HT  kwh_TTC" (HT>100)
+    if(en.length===4 && (el.indexOf('4 000')>=0||el.indexOf('4000')>=0)){
+      if(en[0]>100&&en[1]>en[0]&&en[2]>0.01&&en[3]>0.01&&en[3]<0.06){
+        engie_ach_b1_abo=en[1]; engie_ach_b1_kwh=en[3];
       }
-      // B1 Fourniture: "de 4 000  kwh_HT  kwh_TTC" (2 kwh values), abo on next line
-      if((l.indexOf('4 000')>=0||l.indexOf('4000')>=0)&&nums.length===2){
-        var kht=nums[0],kttc=nums[1];
-        if(kht>0.03&&kttc>0.05&&kttc<0.12){
-          // Find abo on next non-empty line
-          for(var j=li+1;j<Math.min(li+4,lines.length);j++){
-            var nn=(lines[j].match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf)
-                    .filter(function(v){return v&&v>50&&v<200;});
-            if(nn.length>=2){fou.b1={abo:Math.max.apply(null,nn),kwh:kttc};break;}
-            if(nn.length===1){fou.b1={abo:nn[0],kwh:kttc};break;}
+    }
+
+    // B1 Fourniture: "de 4 000  kwh_HT  kwh_TTC" (2 values, abo on next line)
+    if(en.length===2 && (el.indexOf('4 000')>=0||el.indexOf('4000')>=0)){
+      if(en[0]>0.03&&en[1]>0.05&&en[1]<0.12){
+        engie_fou_b1_kwh=en[1];
+        for(var ej=ei+1;ej<Math.min(ei+4,lines.length);ej++){
+          var en2=(lines[ej].match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v&&v>50&&v<200;});
+          if(en2.length>=1){
+            engie_fou_b1_abo=en2[en2.length-1]; // take largest (TTC)
+            break;
           }
         }
       }
     }
-    // Need all 4 components
-    if(!fou.b0||!ach.b0||!fou.b1||!ach.b1) return;
-    d.g_abo_b0=(fou.b0.abo+ach.b0.abo)/12;
-    d.g_abo_b1=(fou.b1.abo+ach.b1.abo)/12;
-    var b0k=fou.b0.kwh+ach.b0.kwh, b1k=fou.b1.kwh+ach.b1.kwh;
-    // Find obligations (lines with 6 small values 0.01-0.05)
-    var ob0=0.02255, ob1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
-    var oblFound=[];
-    for(var li=0;li<lines.length;li++){
-      var nums=(lines[li].match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
-      if(nums.length===6&&nums[0]>0.01&&nums[0]<0.03&&nums[5]>0.01&&nums[5]<0.06){
-        oblFound.push(nums);
+
+    // Obligations: 6 small values 0.01-0.06
+    if(en.length===6&&en[0]>0.01&&en[0]<0.025&&en[5]>0.01&&en[5]<0.06){
+      if(engie_ob0===0.02255&&en[1]>0.02&&en[1]<0.03) engie_ob0=en[1];
+      if(engie_ob1[0]===0.02801&&en[3]>0.02&&en[3]<0.05) {
+        engie_ob1=[];
+        for(var eo=0;eo<6&&ei+eo<lines.length;eo++){
+          var eon=(lines[ei+eo].match(/\b[\d]+\.[\d]+\b/g)||[]).map(pf).filter(function(v){return v!==null;});
+          if(eon.length===6&&eon[3]>0.02&&eon[3]<0.06) engie_ob1.push(eon[3]);
+        }
+        if(engie_ob1.length<6) engie_ob1=[0.02801,0.02903,0.03212,0.03546,0.03907,0.04176];
       }
     }
-    if(oblFound.length>0){
-      ob0=oblFound[0][1]; // GrA B0 TTC
-      ob1=oblFound.slice(0,6).map(function(r){return r[3];}); // GrA-F B1 TTC
-    }
-    for(var z=1;z<=6;z++) d['g_kwh_b0_z'+z]=+((b0k+ob0).toPrecision(5));
-    for(var z=1;z<=6;z++) d['g_kwh_b1_z'+z]=+((b1k+(ob1[z-1]||ob1[0])).toPrecision(5));
-  })();
-  if(d.g_abo_b0) return d;
+  }
+
+  if(engie_fou_b0_abo>0&&engie_ach_b0_abo>0&&engie_fou_b1_abo>0&&engie_ach_b1_abo>0){
+    d.g_abo_b0=(engie_fou_b0_abo+engie_ach_b0_abo)/12;
+    d.g_abo_b1=(engie_fou_b1_abo+engie_ach_b1_abo)/12;
+    var eb0k=engie_fou_b0_kwh+engie_ach_b0_kwh;
+    var eb1k=engie_fou_b1_kwh+engie_ach_b1_kwh;
+    for(var ez=1;ez<=6;ez++) d['g_kwh_b0_z'+ez]=+((eb0k+engie_ob0).toPrecision(5));
+    for(var ez=1;ez<=6;ez++) d['g_kwh_b1_z'+ez]=+((eb1k+(engie_ob1[ez-1]||engie_ob1[0])).toPrecision(5));
+    return d;
+  }
 
   // ── HAPPE: line "TTC HTT TTC 159.39 0.10124 0.14116 0.10723 0.10795..." ──
   for (var li = 0; li < lines.length; li++) {
@@ -1786,28 +1807,13 @@ function sKeydown(e,i) {
 function resetSupplier() {
   if(currentSupplier === null) return;
   var sup = getSuppliersList()[currentSupplier];
-  // Clear current energy data
+  // Clear current energy data completely
   sup[currentEnergy] = {data:{}, status:'empty', pdfName:null, decomposed:false};
-  // Re-apply PRELOAD
-  var pg = currentEnergy==='gas' && PRELOAD.gas && PRELOAD.gas[sup.name];
-  if(pg) {
-    var gd = sup.gas.data;
-    gd.offer = pg.offer;
-    if(pg.b0){ gd.g_abo_b0=pg.b0.abo; [1,2,3,4,5,6].forEach(function(z){if(pg.b0.zones)gd['g_kwh_b0_z'+z]=pg.b0.zones[z-1];}); }
-    if(pg.b1){ gd.g_abo_b1=pg.b1.abo; [1,2,3,4,5,6].forEach(function(z){if(pg.b1.zones)gd['g_kwh_b1_z'+z]=pg.b1.zones[z-1];}); }
-    sup.gas.status='done';
-  }
-  var pe = currentEnergy==='elec' && PRELOAD.elec && PRELOAD.elec[sup.name];
-  if(pe) {
-    var d=sup.elec.data; d.offer=pe.offer;
-    ['3','6','9','12','15','18'].forEach(function(k){var r=pe[k];if(!r)return;if(r.abo_base)d['abo_'+k+'_base']=r.abo_base;if(r.kwh_base)d['kwh_'+k+'_base']=r.kwh_base;if(r.abo_hc)d['abo_'+k+'_hc']=r.abo_hc;if(r.kwh_hp)d['hp_'+k]=r.kwh_hp;if(r.kwh_hc)d['hc_'+k]=r.kwh_hc;});
-    sup.elec.status='done';
-  }
   // Persist and re-render
   try{localStorage.setItem('benchmark_suppliers_elec',JSON.stringify(suppliers));localStorage.setItem('benchmark_suppliers_gaz',JSON.stringify(suppliersGaz));}catch(e){}
   renderSidebar();
   renderContent();
-  showToast('↺ Données réinitialisées depuis PRELOAD','success');
+  showToast('↺ Données effacées','success');
 }
 
 function deleteSupplier(i) {
@@ -1885,7 +1891,27 @@ function saveCurrentMonth(){
   showToast('✓ Benchmark '+getMonthLabel(key)+' sauvegardé','success');
   renderContent();
 }
-function loadMonth(key){currentMonthKey=key;renderContent();}
+function loadMonth(key){
+  currentMonthKey=key;
+  if(key===null){
+    // Return to working data
+    renderSidebar();
+    renderContent();
+    return;
+  }
+  var m=history[key];
+  if(m){
+    // Temporarily load history month data for viewing
+    if(m.suppliers) suppliers=JSON.parse(JSON.stringify(m.suppliers));
+    if(m.suppliersGaz) suppliersGaz=JSON.parse(JSON.stringify(m.suppliersGaz));
+    if(m.REF){
+      if(m.REF.elec) Object.assign(REF.elec,m.REF.elec);
+      if(m.REF.gas) Object.assign(REF.gas,m.REF.gas);
+    }
+  }
+  renderSidebar();
+  renderContent();
+}
 function loadCurrentWork(){currentMonthKey=null;renderContent();}
 function deleteMonth(key){
   if(!confirm('Supprimer le benchmark '+getMonthLabel(key)+' ?')) return;
@@ -2427,6 +2453,45 @@ function showToast(msg,type='') {
 }
 
 init();
+
+// ── Custom prompt modal (replaces blocked window.prompt) ──────────
+var _promptModalCallback = null;
+function showPromptModal(title, defaultVal, callback) {
+  var modal = document.getElementById('promptModal');
+  var input = document.getElementById('promptModalInput');
+  var titleEl = document.getElementById('promptModalTitle');
+  if(!modal) { var r=window.prompt(title,defaultVal); callback(r); return; }
+  titleEl.textContent = title;
+  input.value = defaultVal || '';
+  modal.style.display = 'flex';
+  setTimeout(function(){ input.focus(); input.select(); }, 50);
+  _promptModalCallback = callback;
+  input.onkeydown = function(e){
+    if(e.key==='Enter') promptModalOk();
+    if(e.key==='Escape') promptModalCancel();
+  };
+}
+function promptModalOk() {
+  var val = document.getElementById('promptModalInput').value.trim();
+  document.getElementById('promptModal').style.display = 'none';
+  if(_promptModalCallback) { _promptModalCallback(val || null); _promptModalCallback=null; }
+}
+function promptModalCancel() {
+  document.getElementById('promptModal').style.display = 'none';
+  if(_promptModalCallback) { _promptModalCallback(null); _promptModalCallback=null; }
+}
+
 </script>
+
+<div id="promptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface,#fff);border-radius:12px;padding:24px;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div id="promptModalTitle" style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text1,#111);"></div>
+    <input id="promptModalInput" type="text" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border,#ddd);border-radius:6px;font-size:13px;font-family:var(--sans,'DM Sans'),sans-serif;outline:none;" />
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+      <button onclick="promptModalCancel()" style="padding:7px 16px;border:1px solid var(--border,#ddd);background:transparent;border-radius:6px;cursor:pointer;font-size:13px;">Annuler</button>
+      <button onclick="promptModalOk()" style="padding:7px 16px;background:var(--accent,#006a5e);color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;">OK</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
