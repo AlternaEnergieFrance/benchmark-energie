@@ -201,179 +201,14 @@ let currentMonthKey = null;
 
 
 // ── PRE-LOADED DATA (Mai 2026 from CSV) ──────────────────────────
-const PRELOAD = {
-  elec: {
-    'EDF': {
-      offer:'TARIF BLEU',
-      '3':{abo_base:12.03,kwh_base:0.1940},
-      '6':{abo_base:15.65,kwh_base:0.1940,abo_hc:15.65,kwh_hp:0.2065,kwh_hc:0.1579},
-      '9':{abo_base:19.56,kwh_base:0.1927,abo_hc:19.56,kwh_hp:0.2065,kwh_hc:0.1579},
-      '12':{abo_base:23.32,kwh_base:0.1927,abo_hc:23.32,kwh_hp:0.2065,kwh_hc:0.1579},
-      '15':{abo_base:26.84,kwh_base:0.1927,abo_hc:26.84,kwh_hp:0.2065,kwh_hc:0.1579},
-      '18':{abo_base:30.49,kwh_base:0.1927,abo_hc:30.49,kwh_hp:0.2065,kwh_hc:0.1579}
-    },
-    'Total Energies': {
-      offer:'OFFRE VERTE FIXE 1 AN',
-      '3':{abo_base:12.03,kwh_base:0.2003},
-      '6':{abo_base:15.65,kwh_base:0.2003,abo_hc:15.83,kwh_hp:0.2132,kwh_hc:0.1627},
-      '9':{abo_base:19.56,kwh_base:0.1989,abo_hc:19.83,kwh_hp:0.2132,kwh_hc:0.1627},
-      '12':{abo_base:23.32,kwh_base:0.1989,abo_hc:23.68,kwh_hp:0.2132,kwh_hc:0.1627},
-      '15':{abo_base:26.84,kwh_base:0.1989,abo_hc:27.30,kwh_hp:0.2132,kwh_hc:0.1627},
-      '18':{abo_base:30.49,kwh_base:0.1989,abo_hc:31.03,kwh_hp:0.2132,kwh_hc:0.1627}
-    },
-    'Engie': {
-      offer:'ELEC REFERENCE 3 ANS',
-      '3': {abo_base:12.17,kwh_base:0.20016},
-      '6': {abo_base:15.99,kwh_base:0.20016,abo_hc:17.66,kwh_hp:0.20431,kwh_hc:0.16536},
-      '9': {abo_base:19.81,kwh_base:0.20016,abo_hc:22.31,kwh_hp:0.20431,kwh_hc:0.16536},
-      '12':{abo_base:23.63,kwh_base:0.20016,abo_hc:26.97,kwh_hp:0.20431,kwh_hc:0.16536},
-      '15':{abo_base:27.45,kwh_base:0.20016,abo_hc:31.62,kwh_hp:0.20431,kwh_hc:0.16536},
-      '18':{abo_base:31.27,kwh_base:0.20016,abo_hc:36.28,kwh_hp:0.20431,kwh_hc:0.16536},
-      '24':{abo_base:39.04,kwh_base:0.20016,abo_hc:45.59,kwh_hp:0.20431,kwh_hc:0.16536},
-      '30':{abo_base:46.82,kwh_base:0.20016,abo_hc:54.91,kwh_hp:0.20431,kwh_hc:0.16536},
-      '36':{abo_base:54.60,kwh_base:0.20016,abo_hc:64.27,kwh_hp:0.20431,kwh_hc:0.16536}
-    },
-    'Eni Plénitude': {
-      offer:'Pleniweb 1 an',
-      '3':{abo_base:14.43,kwh_base:0.1861},
-      '6':{abo_base:18.05,kwh_base:0.1861,abo_hc:18.05,kwh_hp:0.1980,kwh_hc:0.1518},
-      '9':{abo_base:21.96,kwh_base:0.1849,abo_hc:22.23,kwh_hp:0.1980,kwh_hc:0.1518},
-      '12':{abo_base:25.72,kwh_base:0.1849,abo_hc:26.08,kwh_hp:0.1980,kwh_hc:0.1518},
-      '15':{abo_base:29.25,kwh_base:0.1849,abo_hc:29.70,kwh_hp:0.1980,kwh_hc:0.1518},
-      '18':{abo_base:32.89,kwh_base:0.1849,abo_hc:33.43,kwh_hp:0.1980,kwh_hc:0.1518}
-    },
-    'Ohm': {
-      offer:'OFFRE ExtraECO',
-      '3':{abo_base:15.24,kwh_base:0.1704},
-      '6':{abo_base:18.71,kwh_base:0.1704,abo_hc:18.48,kwh_hp:0.1836,kwh_hc:0.1415},
-      '9':{abo_base:22.72,kwh_base:0.1704,abo_hc:23.03,kwh_hp:0.1836,kwh_hc:0.1415},
-      '12':{abo_base:26.42,kwh_base:0.1704,abo_hc:26.79,kwh_hp:0.1836,kwh_hc:0.1415},
-      '15':{abo_base:29.89,kwh_base:0.1704,abo_hc:30.31,kwh_hp:0.1836,kwh_hc:0.1415},
-      '18':{abo_base:33.49,kwh_base:0.1704,abo_hc:33.96,kwh_hp:0.1836,kwh_hc:0.1415}
-    },
-    'Mint': {
-      offer:'ONLINE & GREEN',
-      '3':{abo_base:12.03,kwh_base:0.1767},
-      '6':{abo_base:15.65,kwh_base:0.1767,abo_hc:15.83,kwh_hp:0.1878,kwh_hc:0.1446},
-      '9':{abo_base:19.56,kwh_base:0.1755,abo_hc:19.83,kwh_hp:0.1878,kwh_hc:0.1446},
-      '12':{abo_base:23.32,kwh_base:0.1755,abo_hc:23.68,kwh_hp:0.1878,kwh_hc:0.1446},
-      '15':{abo_base:26.85,kwh_base:0.1755,abo_hc:27.30,kwh_hp:0.1878,kwh_hc:0.1446},
-      '18':{abo_base:30.49,kwh_base:0.1755,abo_hc:31.03,kwh_hp:0.1878,kwh_hc:0.1446}
-    },
-    'Ekwateur': {
-      offer:'100% VERTE VARIABLE',
-      '3':{abo_base:12.02,kwh_base:0.1775},
-      '6':{abo_base:15.65,kwh_base:0.1775,abo_hc:15.65,kwh_hp:0.2091,kwh_hc:0.1652},
-      '9':{abo_base:19.56,kwh_base:0.1841,abo_hc:23.38,kwh_hp:0.2091,kwh_hc:0.1652},
-      '12':{abo_base:26.54,kwh_base:0.1841,abo_hc:27.46,kwh_hp:0.2091,kwh_hc:0.1652},
-      '15':{abo_base:30.08,kwh_base:0.1841,abo_hc:30.86,kwh_hp:0.2091,kwh_hc:0.1652},
-      '18':{abo_base:33.80,kwh_base:0.1841,abo_hc:34.75,kwh_hp:0.2091,kwh_hc:0.1652}
-    },
-    'Alpiq': {
-      offer:'ELECTRICITE STABLE',
-      '3':{abo_base:12.03,kwh_base:0.1811},
-      '6':{abo_base:15.65,kwh_base:0.1811,abo_hc:15.65,kwh_hp:0.1921,kwh_hc:0.1494},
-      '9':{abo_base:19.56,kwh_base:0.1800,abo_hc:19.56,kwh_hp:0.1921,kwh_hc:0.1494},
-      '12':{abo_base:23.32,kwh_base:0.1800,abo_hc:23.32,kwh_hp:0.1921,kwh_hc:0.1494},
-      '15':{abo_base:26.84,kwh_base:0.1800,abo_hc:26.84,kwh_hp:0.1921,kwh_hc:0.1494},
-      '18':{abo_base:30.49,kwh_base:0.1800,abo_hc:30.49,kwh_hp:0.1921,kwh_hc:0.1494}
-    },
-    'Alterna': {
-      offer:'ELEC VERTE 100% FRANCAISE',
-      '3':{abo_base:11.25,kwh_base:0.1772},
-      '6':{abo_base:14.78,kwh_base:0.1772,abo_hc:15.05,kwh_hp:0.1885,kwh_hc:0.1493},
-      '9':{abo_base:18.49,kwh_base:0.1772,abo_hc:19.19,kwh_hp:0.1885,kwh_hc:0.1493},
-      '12':{abo_base:22.21,kwh_base:0.1772,abo_hc:23.01,kwh_hp:0.1885,kwh_hc:0.1493},
-      '15':{abo_base:25.74,kwh_base:0.1772,abo_hc:26.63,kwh_hp:0.1885,kwh_hc:0.1493},
-      '18':{abo_base:29.23,kwh_base:0.1772,abo_hc:30.35,kwh_hp:0.1885,kwh_hc:0.1493}
-    },
-    'Octopus': {
-      offer:'ELECTRICITE VERTE',
-      '3':{abo_base:12.03,kwh_base:0.1909},
-      '6':{abo_base:15.65,kwh_base:0.1909,abo_hc:15.65,kwh_hp:0.2031,kwh_hc:0.1555},
-      '9':{abo_base:19.56,kwh_base:0.1895,abo_hc:19.83,kwh_hp:0.2031,kwh_hc:0.1555},
-      '12':{abo_base:23.32,kwh_base:0.1895,abo_hc:23.68,kwh_hp:0.2031,kwh_hc:0.1555},
-      '15':{abo_base:26.84,kwh_base:0.1895,abo_hc:27.30,kwh_hp:0.2031,kwh_hc:0.1555},
-      '18':{abo_base:30.49,kwh_base:0.1895,abo_hc:31.03,kwh_hp:0.2031,kwh_hc:0.1555}
-    },
-    'La Belle Energie': {
-      offer:'PRUDENCE (1 an)',
-      '3':{abo_base:11.13,kwh_base:0.1720},
-      '6':{abo_base:14.75,kwh_base:0.1720,abo_hc:14.75,kwh_hp:0.1827,kwh_hc:0.1409},
-      '9':{abo_base:18.66,kwh_base:0.1708,abo_hc:18.93,kwh_hp:0.1827,kwh_hc:0.1409},
-      '12':{abo_base:22.42,kwh_base:0.1708,abo_hc:22.78,kwh_hp:0.1827,kwh_hc:0.1409},
-      '15':{abo_base:25.94,kwh_base:0.1708,abo_hc:26.40,kwh_hp:0.1827,kwh_hc:0.1409},
-      '18':{abo_base:37.34,kwh_base:0.1708,abo_hc:30.13,kwh_hp:0.1827,kwh_hc:0.1409}
-    },
-    'Enercoop': {
-      offer:'Offre C5 part',
-      '3':{abo_base:10.10,kwh_base:0.2008},
-      '6':{abo_base:16.02,kwh_base:0.2008,abo_hc:19.19,kwh_hp:0.2476,kwh_hc:0.1678},
-      '9':{abo_base:22.28,kwh_base:0.2008,abo_hc:25.82,kwh_hp:0.2476,kwh_hc:0.1678},
-      '12':{abo_base:27.68,kwh_base:0.2008,abo_hc:31.74,kwh_hp:0.2476,kwh_hc:0.1678},
-      '15':{abo_base:33.65,kwh_base:0.2008,abo_hc:37.67,kwh_hp:0.2476,kwh_hc:0.1678},
-      '18':{abo_base:39.62,kwh_base:0.2008,abo_hc:43.59,kwh_hp:0.2476,kwh_hc:0.1678}
-    },
-    'Primeo': {
-      offer:'Offre Fixe Confort',
-      '3':{abo_base:16.13,kwh_base:0.1625},
-      '6':{abo_base:18.36,kwh_base:0.1625,abo_hc:18.36,kwh_hp:0.1726,kwh_hc:0.1337},
-      '9':{abo_base:22.44,kwh_base:0.1616,abo_hc:22.44,kwh_hp:0.1726,kwh_hc:0.1337},
-      '12':{abo_base:26.36,kwh_base:0.1616,abo_hc:26.36,kwh_hp:0.1726,kwh_hc:0.1337},
-      '15':{abo_base:30.04,kwh_base:0.1616,abo_hc:30.04,kwh_hp:0.1726,kwh_hc:0.1337},
-      '18':{abo_base:33.85,kwh_base:0.1616,abo_hc:33.85,kwh_hp:0.1726,kwh_hc:0.1337}
-    }
-  },
-  gas: {
-    'EDF': {
-      offer:'AVANTAGE GAZ 2 ANS',
-      b0:{abo:9.87,  zones:[0.1385,0.1389,0.1375,0.1394,0.1443,0.1476]},
-      b1:{abo:23.29, zones:[0.1080,0.1085,0.1069,0.1089,0.1139,0.1171]}
-    },
-    'Total Energies': {
-      offer:'OFFRE SPECIALE GAZ',
-      b0:{abo:12.27, zones:[0.1538,0.1547,0.1563,0.1580,0.1605,0.1638]},
-      b1:{abo:28.66, zones:[0.1209,0.1227,0.1251,0.1290,0.1333,0.1393]}
-    },
-    'Engie': {
-      offer:'GAZ REFERENCE 3 ANS',
-      b0:{abo:12.27, zones:[0.1466,0.1466,0.1466,0.1466,0.1466,0.1466]},
-      b1:{abo:30.91, zones:[0.1146,0.1146,0.1146,0.1146,0.1146,0.1146]}
-    },
-    'Eni Plénitude': {
-      offer:'PLENIFIX 1 AN GAZ',
-      b0:{abo:173.88/12, zones:[0.15625,0.15625,0.15625,0.15625,0.15625,0.15625]},
-      b1:{abo:370.53/12, zones:[0.12378,0.12378,0.12378,0.12378,0.12378,0.12378]}
-    },
-    'Ohm': {
-      offer:'EXTRA ECO GAZ',
-      b0:{abo:10.95, zones:[0.1351,0.1351,0.1351,0.1351,0.1351,0.1351]},
-      b1:{abo:27.73, zones:[0.0971,0.0993,0.1029,0.1041,0.1085,0.1118]}
-    },
-    'Alterna': {
-      offer:'GAZ ESSENTIEL -5% PRVG',
-      b0:{abo:12.27, zones:[0.1466,0.1466,0.1466,0.1466,0.1466,0.1466]},
-      b1:{abo:30.91, zones:[0.1146,0.1146,0.1146,0.1146,0.1146,0.1146]}
-    },
-    'Octopus': {
-      offer:'GAZ FIXE -2% JUIN 2026',
-      b0:{abo:12.27, zones:[0.1448,0.1459,0.1472,0.1480,0.1486,0.1485]},
-      b1:{abo:28.66, zones:[0.1140,0.1159,0.1185,0.1199,0.1208,0.1208]}
-    },
-    'Happ-e': {
-      offer:'GAZ HAPP-E 1 AN',
-      b0:{abo:159.39/12, zones:[0.14116,0.14116,0.14116,0.14116,0.14116,0.14116]},
-      b1:{abo:482.14/12, zones:[0.10723,0.10795,0.10867,0.10939,0.11011,0.11083]}
-    }
-  }
-};
+const PRELOAD = { elec: {}, gas: {} }
 
 const SUPPLIERS = [
   'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Mint',
   'Ekwateur','Alpiq','Alterna','Octopus','La Belle Energie','Enercoop','Primeo','Happ-e'
 ];
 const SUPPLIERS_GAZ = [
-  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Alterna','Octopus','Happ-e'
+  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Octopus','Happ-e'
 ];
 
 let suppliers = SUPPLIERS.map(function(name){ return {
@@ -440,8 +275,8 @@ const REF = {
   },
   gas:{
     offerName:'', pdfName:null,
-    abo_b0:null, kwh_b0_z1:null,
-    abo_b1:null, kwh_b1_z1:null
+    abo_b0:null, kwh_b0_z1:null, kwh_b0_z2:null,
+    abo_b1:null, kwh_b1_z1:null, kwh_b1_z2:null
   }
 };
 let pendingRefFile = {elec:null, gas:null};
@@ -572,9 +407,11 @@ function renderSidebar() {
         </div>
         <div class="ref-grid">
           <div class="ref-field gas"><label>Abo B0 (€/mois)</label><input type="number" id="rg_abo_b0" value="${REF.gas.abo_b0!=null?REF.gas.abo_b0.toFixed(2):''}" step="any" oninput="REF.gas.abo_b0=parseFloat(this.value)"></div>
-          <div class="ref-field gas"><label>kWh B0 Zone1 (€/kWh)</label><input type="number" id="rg_k_b0" value="${REF.gas.kwh_b0_z1!=null?REF.gas.kwh_b0_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b0_z1=parseFloat(this.value)"></div>
+          <div class="ref-field gas"><label>kWh B0 Zone1 (€/kWh)</label><input type="number" id="rg_k_b0" value="${REF.gas.kwh_b0_z1!=null?REF.gas.kwh_b0_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b0_z1=parseFloat(this.value);renderResults()"></div>
+          <div class="ref-field gas"><label>kWh B0 Zone2 (€/kWh)</label><input type="number" id="rg_k_b0z2" value="${REF.gas.kwh_b0_z2!=null?REF.gas.kwh_b0_z2.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b0_z2=parseFloat(this.value);renderResults()"></div>
           <div class="ref-field gas"><label>Abo B1 (€/mois)</label><input type="number" id="rg_abo_b1" value="${REF.gas.abo_b1!=null?REF.gas.abo_b1.toFixed(2):''}" step="any" oninput="REF.gas.abo_b1=parseFloat(this.value)"></div>
-          <div class="ref-field gas"><label>kWh B1 Zone1 (€/kWh)</label><input type="number" id="rg_k_b1" value="${REF.gas.kwh_b1_z1!=null?REF.gas.kwh_b1_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b1_z1=parseFloat(this.value)"></div>
+          <div class="ref-field gas"><label>kWh B1 Zone1 (€/kWh)</label><input type="number" id="rg_k_b1" value="${REF.gas.kwh_b1_z1!=null?REF.gas.kwh_b1_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b1_z1=parseFloat(this.value);renderResults()"></div>
+          <div class="ref-field gas"><label>kWh B1 Zone2 (€/kWh)</label><input type="number" id="rg_k_b1z2" value="${REF.gas.kwh_b1_z2!=null?REF.gas.kwh_b1_z2.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b1_z2=parseFloat(this.value);renderResults()"></div>
         </div>
       </div>
     </div>`;
@@ -719,7 +556,7 @@ function nouveauMois() {
     suppliers = SUPPLIERS.map(function(n){ return {name:n,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
     suppliersGaz = SUPPLIERS_GAZ.map(function(n){ return {name:n,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
     REF.elec = {offerName:'',pdfName:null,abo_6_base:null,kwh_6_base:null,abo_9_base:null,kwh_9_base:null,abo_6_hc:null,hp_6:null,hc_6:null,abo_9_hc:null,hp_9:null,hc_9:null};
-    REF.gas  = {offerName:'',pdfName:null,abo_b0:null,kwh_b0_z1:null,abo_b1:null,kwh_b1_z1:null};
+    REF.gas  = {offerName:'',pdfName:null,abo_b0:null,kwh_b0_z1:null,kwh_b0_z2:null,abo_b1:null,kwh_b1_z1:null,kwh_b1_z2:null};
     currentSupplier = null;
     currentMonthKey = key;
     history[key] = {savedAt:new Date().toISOString(),monthKey:key,suppliers:JSON.parse(JSON.stringify(suppliers)),suppliersGaz:JSON.parse(JSON.stringify(suppliersGaz)),REF:JSON.parse(JSON.stringify(REF))};
@@ -2056,36 +1893,49 @@ function computeGasRankings() {
   var r = getActiveREF('gas');
   var sups = getActiveSuppliers();
   var SELF = 'Alterna Energie France';
-  var vB0 = calcGasCost({g_abo_b0:r.abo_b0,g_kwh_b0_z1:r.kwh_b0_z1},'b0',CONSOS.gas_b0);
-  var vB1 = calcGasCost({g_abo_b1:r.abo_b1,g_kwh_b1_z1:r.kwh_b1_z1},'b1',CONSOS.gas_b1);
-  var res = {b0:[], b1:[]};
+  function gasCost(abo, kwh, conso) { return (abo&&kwh) ? abo*12 + kwh*conso : null; }
+  var vB0z1 = gasCost(r.abo_b0, r.kwh_b0_z1, CONSOS.gas_b0);
+  var vB0z2 = gasCost(r.abo_b0, r.kwh_b0_z2, CONSOS.gas_b0);
+  var vB1z1 = gasCost(r.abo_b1, r.kwh_b1_z1, CONSOS.gas_b1);
+  var vB1z2 = gasCost(r.abo_b1, r.kwh_b1_z2, CONSOS.gas_b1);
+  var res = {b0z1:[], b0z2:[], b1z1:[], b1z2:[]};
   var offerName = r.offerName || 'Gaz Essentiel -5%';
-  res.b0.push({name:SELF, offer:offerName, isSelf:true,
-    abo:r.abo_b0, kwh:r.kwh_b0_z1, annuel:vB0, ecart:0});
-  res.b1.push({name:SELF, offer:offerName, isSelf:true,
-    abo:r.abo_b1, kwh:r.kwh_b1_z1, annuel:vB1, ecart:0});
+  res.b0z1.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b0, kwh:r.kwh_b0_z1, annuel:vB0z1, ecart:0});
+  res.b0z2.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b0, kwh:r.kwh_b0_z2, annuel:vB0z2, ecart:0});
+  res.b1z1.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b1, kwh:r.kwh_b1_z1, annuel:vB1z1, ecart:0});
+  res.b1z2.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b1, kwh:r.kwh_b1_z2, annuel:vB1z2, ecart:0});
   sups.forEach(function(s) {
     if (s.name===SELF) return;
     if (!s.gas||s.gas.status!=='done') return;
     var d = s.gas.data;
-    var cb0 = calcGasCost(d,'b0',CONSOS.gas_b0);
-    var cb1 = calcGasCost(d,'b1',CONSOS.gas_b1);
+    var cb0z1 = gasCost(d.g_abo_b0, d.g_kwh_b0_z1, CONSOS.gas_b0);
+    var cb0z2 = gasCost(d.g_abo_b0, d.g_kwh_b0_z2, CONSOS.gas_b0);
+    var cb1z1 = gasCost(d.g_abo_b1, d.g_kwh_b1_z1, CONSOS.gas_b1);
+    var cb1z2 = gasCost(d.g_abo_b1, d.g_kwh_b1_z2, CONSOS.gas_b1);
     var base = {name:s.name, offer:d.offer||'—', isSelf:false};
-    if (cb0!==null) res.b0.push(Object.assign({},base,{
+    if (cb0z1!==null) res.b0z1.push(Object.assign({},base,{
       ecart_abo:(d.g_abo_b0||0)-r.abo_b0,
-      ecart_kwh:(d.g_kwh_b0_z1||0)-r.kwh_b0_z1,
-      ecart: vB0!==null ? cb0-vB0 : null
+      ecart_kwh:(d.g_kwh_b0_z1||0)-(r.kwh_b0_z1||0),
+      ecart: vB0z1!==null ? cb0z1-vB0z1 : null
     }));
-    if (cb1!==null) res.b1.push(Object.assign({},base,{
+    if (cb0z2!==null) res.b0z2.push(Object.assign({},base,{
+      ecart_abo:(d.g_abo_b0||0)-r.abo_b0,
+      ecart_kwh:(d.g_kwh_b0_z2||0)-(r.kwh_b0_z2||0),
+      ecart: vB0z2!==null ? cb0z2-vB0z2 : null
+    }));
+    if (cb1z1!==null) res.b1z1.push(Object.assign({},base,{
       ecart_abo:(d.g_abo_b1||0)-r.abo_b1,
-      ecart_kwh:(d.g_kwh_b1_z1||0)-r.kwh_b1_z1,
-      ecart: vB1!==null ? cb1-vB1 : null
+      ecart_kwh:(d.g_kwh_b1_z1||0)-(r.kwh_b1_z1||0),
+      ecart: vB1z1!==null ? cb1z1-vB1z1 : null
+    }));
+    if (cb1z2!==null) res.b1z2.push(Object.assign({},base,{
+      ecart_abo:(d.g_abo_b1||0)-r.abo_b1,
+      ecart_kwh:(d.g_kwh_b1_z2||0)-(r.kwh_b1_z2||0),
+      ecart: vB1z2!==null ? cb1z2-vB1z2 : null
     }));
   });
-  ['b0','b1'].forEach(function(k){
-    res[k].sort(function(a,b){
-      return (a.ecart||0)-(b.ecart||0);
-    });
+  ['b0z1','b0z2','b1z1','b1z2'].forEach(function(k){
+    res[k].sort(function(a,b){ return (a.ecart||0)-(b.ecart||0); });
   });
   return res;
 }
@@ -2171,12 +2021,20 @@ function renderResultsHTML() {
     var gasStyle='background:var(--orange-light);border-radius:10px;padding:16px;margin-bottom:20px;border:1px solid #F0C090;';
     return header
       +'<div style="'+gasStyle+'">'
-      +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B0 — Cuisine &amp; Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an</div>'
-      +rankTable(r.b0,C_GAS)
+      +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B0 Zone 1 — Cuisine &amp; Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an</div>'
+      +rankTable(r.b0z1,C_GAS)
       +'</div>'
       +'<div style="'+gasStyle+'">'
-      +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B1 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an</div>'
-      +rankTable(r.b1,C_GAS)
+      +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B0 Zone 2 — Cuisine &amp; Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an</div>'
+      +rankTable(r.b0z2,C_GAS)
+      +'</div>'
+      +'<div style="'+gasStyle+'">'
+      +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B1 Zone 1 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an</div>'
+      +rankTable(r.b1z1,C_GAS)
+      +'</div>'
+      +'<div style="'+gasStyle+'">'
+      +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B1 Zone 2 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an</div>'
+      +rankTable(r.b1z2,C_GAS)
       +'</div>';
   }
 }
