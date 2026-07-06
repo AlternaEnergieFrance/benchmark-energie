@@ -1943,8 +1943,14 @@ function computeGasRankings() {
 // ── RANK TABLE ──
 function rankTable(data, cols) {
   if (!data.length) return '<p style="font-size:12px;color:var(--text3);padding:8px 0;">Aucune donnée</p>';
-  var isHC = cols.includes('Écart HP');
-  var headers = cols.map(function(c){return '<th>'+c+'</th>';}).join('');
+  var isHC = cols.includes('HP (€/kWh)');
+  // Headers: pour Alterna = valeurs absolues, pour concurrents = écarts
+  var headers = cols.map(function(c,i){
+    if(i<=2) return '<th>'+c+'</th>';
+    // Colonnes de valeurs : double lecture
+    var ecartLabel = c.replace('kWh (€/kWh)','Écart kWh').replace('HP (€/kWh)','Écart HP').replace('HC (€/kWh)','Écart HC').replace('Coût annuel €','Écart annuel €');
+    return '<th><span style="color:var(--text3);font-size:9px;display:block;font-weight:400;">★ '+c+'</span><span style="font-size:9px;display:block;font-weight:400;color:var(--text3)"># '+ecartLabel+'</span></th>';
+  }).join('');
   var rows = data.map(function(row, i) {
     var isSelf = row.isSelf;
     var rankCls = isSelf ? 'rank self' : (i<3 ? 'rank top' : 'rank');
@@ -1961,12 +1967,13 @@ function rankTable(data, cols) {
 
     if (isSelf) {
       // Show absolute values for Alterna
-      cells += '<td class="num">'+(row.abo!==undefined&&row.abo!==null ? row.abo.toFixed(2) : '—')+'</td>';
+      function fmt(v,d){if(v===null||v===undefined||isNaN(v))return '—';return (+v).toFixed(d);}
+      cells += '<td class="num">'+fmt(row.abo,2)+'</td>';
       if (isHC) {
-        cells += '<td class="num">'+(row.hp!==undefined&&row.hp!==null ? row.hp.toFixed(4) : '—')+'</td>';
-        cells += '<td class="num">'+(row.hc!==undefined&&row.hc!==null ? row.hc.toFixed(4) : '—')+'</td>';
+        cells += '<td class="num">'+fmt(row.hp,4)+'</td>';
+        cells += '<td class="num">'+fmt(row.hc,4)+'</td>';
       } else {
-        cells += '<td class="num">'+(row.kwh!==undefined&&row.kwh!==null ? row.kwh.toFixed(4) : '—')+'</td>';
+        cells += '<td class="num">'+fmt(row.kwh,4)+'</td>';
       }
       cells += '<td class="num">'+(row.annuel!==null&&row.annuel!==undefined ? Math.round(row.annuel)+' €' : '—')+'</td>';
     } else {
@@ -2008,8 +2015,8 @@ function renderResultsHTML() {
     +'</div>';
   if(isElec){
     var r=computeElecRankings();
-    var C_BASE=['#','Fournisseur','Offre','Abo (€/mois)','Écart kWh','Écart annuel €'];
-    var C_HC  =['#','Fournisseur','Offre','Abo (€/mois)','Écart HP','Écart HC','Écart annuel €'];
+    var C_BASE=['#','Fournisseur','Offre','Abo (€/mois)','kWh (€/kWh)','Coût annuel €'];
+    var C_HC  =['#','Fournisseur','Offre','Abo (€/mois)','HP (€/kWh)','HC (€/kWh)','Coût annuel €'];
     return header
       +'<div class="segment-label">6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an</div>'+rankTable(r.e6b,C_BASE)
       +'<div class="segment-label">9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an</div>'+rankTable(r.e9b,C_BASE)
@@ -2017,7 +2024,7 @@ function renderResultsHTML() {
       +'<div class="segment-label">9 kVA Option HP/HC — conso moy. '+(CONSOS.elec_9_hc_hp+CONSOS.elec_9_hc_hc)+' kWh/an</div>'+rankTable(r.e9h,C_HC);
   } else {
     var r=computeGasRankings();
-    var C_GAS=['#','Fournisseur','Offre','Abo (€/mois)','Écart kWh','Écart annuel €'];
+    var C_GAS=['#','Fournisseur','Offre','Abo (€/mois)','kWh (€/kWh)','Coût annuel €'];
     var gasStyle='background:var(--orange-light);border-radius:10px;padding:16px;margin-bottom:20px;border:1px solid #F0C090;';
     return header
       +'<div style="'+gasStyle+'">'
