@@ -204,11 +204,11 @@ let currentMonthKey = null;
 const PRELOAD = { elec: {}, gas: {} }
 
 const SUPPLIERS = [
-  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Mint',
-  'Ekwateur','Alpiq','Alterna','Octopus','La Belle Energie','Enercoop','Primeo','Happ-e'
+  'EDF','Total Energies','Engie','Plenitude','Ohm','Mint',
+  'Ekwateur','Alpiq','Octopus','La Belle Energie','Primeo'
 ];
 const SUPPLIERS_GAZ = [
-  'EDF','Total Energies','Engie','Eni Plénitude','Ohm','Octopus','Happ-e'
+  'EDF','Total Energies','Engie','Plenitude','Ohm','Octopus'
 ];
 
 let suppliers = SUPPLIERS.map(function(name){ return {
@@ -282,9 +282,12 @@ const REF = {
 let pendingRefFile = {elec:null, gas:null};
 
 const CONSOS = {
-  elec_6_base:3299,  elec_9_base:5861,
-  elec_6_hc_hp:2648, elec_6_hc_hc:1976,
-  elec_9_hc_hp:4992, elec_9_hc_hc:3730,
+  elec_6_base:3299,   elec_9_base:5861,   elec_12_base:9185,  elec_15_base:11250, elec_18_base:13500,
+  elec_6_hc_hp:2648,  elec_6_hc_hc:1976,
+  elec_9_hc_hp:4992,  elec_9_hc_hc:3730,
+  elec_12_hc_hp:7963, elec_12_hc_hc:5958,
+  elec_15_hc_hp:9750, elec_15_hc_hc:7292,
+  elec_18_hc_hp:11700,elec_18_hc_hc:8750,
   gas_b0:2500, gas_b1:13500
 };
 
@@ -368,18 +371,28 @@ function renderSidebar() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Abonnement (€/mois)</div>
           <div style="font-size:10px;font-weight:600;color:var(--text2);padding:2px 4px;background:var(--surface);border-radius:4px;">Prix kWh (€/kWh)</div>
-          <div class="ref-field"><label>Abo 6kVA Base</label><input type="text" id="r_abo_6b" value="${REF.elec.abo_6_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_6_base=v;renderResults();}"></div>
-          <div class="ref-field"><label>kWh 6kVA Base</label><input type="text" id="r_k6b" value="${REF.elec.kwh_6_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_6_base=v;renderResults();}"></div>
-          <div class="ref-field"><label>Abo 9kVA Base</label><input type="text" id="r_abo_9b" value="${REF.elec.abo_9_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_9_base=v;renderResults();}"></div>
-          <div class="ref-field"><label>kWh 9kVA Base</label><input type="text" id="r_k9b" value="${REF.elec.kwh_9_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_9_base=v;renderResults();}"></div>
-          <div class="ref-field"><label>Abo 6kVA HC</label><input type="text" id="r_abo_6h" value="${REF.elec.abo_6_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_6_hc=v;renderResults();}"></div>
-          <div class="ref-field"><label>HP 6kVA</label><input type="text" id="r_hp6" value="${REF.elec.hp_6||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hp_6=v;renderResults();}"></div>
-          <div class="ref-field"><label>Abo 9kVA HC</label><input type="text" id="r_abo_9h" value="${REF.elec.abo_9_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_9_hc=v;renderResults();}"></div>
-          <div class="ref-field"><label>HC 6kVA</label><input type="text" id="r_hc6" value="${REF.elec.hc_6||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hc_6=v;renderResults();}"></div>
-          <div class="ref-field" style="grid-column:1"></div>
-          <div class="ref-field"><label>HP 9kVA</label><input type="text" id="r_hp9" value="${REF.elec.hp_9||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hp_9=v;renderResults();}"></div>
-          <div class="ref-field" style="grid-column:1"></div>
-          <div class="ref-field"><label>HC 9kVA</label><input type="text" id="r_hc9" value="${REF.elec.hc_9||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hc_9=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 3kVA Base</label><input type="text" id="r_abo_3b" value="${REF.elec.abo_3_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_3_base=v;renderResults();}"></div>
+<div class="ref-field"><label>kWh 3kVA Base</label><input type="text" id="r_k3b" value="${REF.elec.kwh_3_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_3_base=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 6kVA Base</label><input type="text" id="r_abo_6b" value="${REF.elec.abo_6_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_6_base=v;renderResults();}"></div>
+<div class="ref-field"><label>kWh 6kVA Base</label><input type="text" id="r_k6b" value="${REF.elec.kwh_6_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_6_base=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 9kVA Base</label><input type="text" id="r_abo_9b" value="${REF.elec.abo_9_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_9_base=v;renderResults();}"></div>
+<div class="ref-field"><label>kWh 9kVA Base</label><input type="text" id="r_k9b" value="${REF.elec.kwh_9_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_9_base=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 12kVA Base</label><input type="text" id="r_abo_12b" value="${REF.elec.abo_12_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_12_base=v;renderResults();}"></div>
+<div class="ref-field"><label>kWh 12kVA Base</label><input type="text" id="r_k12b" value="${REF.elec.kwh_12_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_12_base=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 15kVA Base</label><input type="text" id="r_abo_15b" value="${REF.elec.abo_15_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_15_base=v;renderResults();}"></div>
+<div class="ref-field"><label>kWh 15kVA Base</label><input type="text" id="r_k15b" value="${REF.elec.kwh_15_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_15_base=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 18kVA Base</label><input type="text" id="r_abo_18b" value="${REF.elec.abo_18_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_18_base=v;renderResults();}"></div>
+<div class="ref-field"><label>kWh 18kVA Base</label><input type="text" id="r_k18b" value="${REF.elec.kwh_18_base||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.kwh_18_base=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 6kVA HC</label><input type="text" id="r_abo_6h" value="${REF.elec.abo_6_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_6_hc=v;renderResults();}"></div>
+<div class="ref-field"><label>HP 6kVA</label><input type="text" id="r_hp6" value="${REF.elec.hp_6||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hp_6=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 9kVA HC</label><input type="text" id="r_abo_9h" value="${REF.elec.abo_9_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_9_hc=v;renderResults();}"></div>
+<div class="ref-field"><label>HC 6kVA</label><input type="text" id="r_hc6" value="${REF.elec.hc_6||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hc_6=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 12kVA HC</label><input type="text" id="r_abo_12h" value="${REF.elec.abo_12_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_12_hc=v;renderResults();}"></div>
+<div class="ref-field"><label>HP 9kVA</label><input type="text" id="r_hp9" value="${REF.elec.hp_9||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hp_9=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 15kVA HC</label><input type="text" id="r_abo_15h" value="${REF.elec.abo_15_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_15_hc=v;renderResults();}"></div>
+<div class="ref-field"><label>HC 9kVA</label><input type="text" id="r_hc9" value="${REF.elec.hc_9||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hc_9=v;renderResults();}"></div>
+<div class="ref-field"><label>Abo 18kVA HC</label><input type="text" id="r_abo_18h" value="${REF.elec.abo_18_hc||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.abo_18_hc=v;renderResults();}"></div>
+<div class="ref-field"><label>HP/HC 12kVA</label><input type="text" id="r_hp12" value="${REF.elec.hp_12||''}" oninput="var v=parseFloat(this.value.replace(',','.'));if(!isNaN(v)){REF.elec.hp_12=v;renderResults();}"></div>
         </div>
       </div>
     </div>`;
@@ -568,12 +581,10 @@ function nouveauMois() {
 
 
 function renderResults() {
-  if (currentTab === 'results') {
-    try {
-      var el = document.getElementById('tabResults');
-      if (el) el.innerHTML = renderResultsHTML();
-    } catch(e) { console.error('renderResults error:', e); }
-  }
+  try {
+    var el = document.getElementById('tabResults');
+    if (el) el.innerHTML = renderResultsHTML();
+  } catch(e) { console.error('renderResults error:', e); }
 }
 
 function renderContent() {
@@ -697,15 +708,15 @@ function renderEntry() {
     <button type="button" onclick="processPastedText()" style="margin-top:6px;padding:6px 16px;background:var(--accent);color:white;border:none;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;">Extraire les tarifs ↗</button>
   </div>
   <div class="info-box" id="infoBox" style="display:none"></div>
-  <form onsubmit="saveSupplier(event)">
+  <div>
     ${generalFields}
     ${tarifFields}
     <div style="padding-top:8px;border-top:1px solid var(--border);">
-      <button type="submit" class="btn-save">✓ Valider</button>
+      <button type="button" class="btn-save" onclick="saveSupplier()">✓ Valider</button>
       <button type="button" class="btn-secondary" onclick="nextSupplier()">Suivant →</button>
       <button type="button" class="btn-secondary" onclick="resetSupplier()" style="float:right;color:var(--danger,#c00);">↺ Réinitialiser</button>
     </div>
-  </form>`;
+  </div>`;
 }
 
 function renderElecFields(d, decomposed) {
@@ -908,7 +919,7 @@ function set(id,val){ const el=document.getElementById(id); if(el)el.textContent
 
 // ── SAVE ──
 function saveSupplier(e) {
-  e.preventDefault();
+  if(e&&e.preventDefault) e.preventDefault();
   const s = getSuppliersList()[currentSupplier];
   // Ensure the energy bucket exists
   if(!s[currentEnergy]) {
@@ -967,11 +978,11 @@ function saveSupplier(e) {
   bucket.data = d;
   bucket.status = (d.abo_6_base || d.abo_9_base || d.abo_6_hc || d.g_abo_b0 || d.g_abo_b1) ? 'done' : 'partial';
   renderSidebar();
+  postRenderRef();
+  // Mettre à jour le classement en arrière-plan
+  var resEl = document.getElementById('tabResults');
+  if(resEl) resEl.innerHTML = renderResultsHTML();
   showToast('✓ '+s.name+' ('+(currentEnergy==='elec'?'⚡':'🔥')+') sauvegardé','success');
-  // Data stays in memory only — saved to history via Sauvegarder button
-  // Classement temps réel
-  var resTab = document.getElementById('tabResults');
-  if (resTab && resTab.style.display !== 'none') resTab.innerHTML = renderResultsHTML();
 }
 
 function nextSupplier() { if(currentSupplier<suppliers.length-1) selectSupplier(currentSupplier+1); }
@@ -987,6 +998,11 @@ async function handlePDF(event) {
     const extracted = currentEnergy==='elec'?parseElecTariffs(text):parseGasTariffs(text);
     getSuppliersList()[currentSupplier][currentEnergy].pdfName = file.name;
     if (Object.keys(extracted).length>0) {
+      // Sauvegarder dans supplier.data pour persistance
+      if(currentSupplier!==null){
+        var sup=getSuppliersList()[currentSupplier];
+        Object.assign(sup[currentEnergy].data, extracted);
+      }
       applyExtracted(extracted);
       showToast('✓ '+Object.keys(extracted).length+' valeurs extraites','success');
       const info=document.getElementById('infoBox');
@@ -994,7 +1010,7 @@ async function handlePDF(event) {
     } else {
       showToast('Aucune valeur détectée — saisie manuelle','error');
     }
-  } catch(err){showToast('Erreur PDF','error');console.error(err);}
+  } catch(err){showToast('Erreur PDF: '+err.message,'error');console.error('PDF ERROR:', err);}
   document.getElementById('extractLabel').textContent='Changer PDF';
 }
 async function extractPDFText(file) {
@@ -1041,10 +1057,26 @@ async function extractPDFText(file) {
   return txt;
 }
 function parseElecTariffs(rawText) {
-  // Engie decomposed fiche descriptive: skip, PRELOAD values already correct
-  if(rawText.indexOf('Fourniture comptage')>=0||rawText.indexOf('Fourniture  comptage')>=0){
-    return {};
+  var rawTextOriginal = rawText; // Garder le texte original avant isolation
+  // Isoler section TTC si PDF contient HT + TTC (ex: Alterna)
+  var ttcIdx = rawText.search(/Tarifs\s+TTC|TTC\s*[-\u2013\s]+applicables/i);
+  if(ttcIdx > 0) rawText = rawText.substring(ttcIdx);
+  // Isoler grille tarifaire Engie (pages 4-5)
+  var engieGridIdx = rawText.search(/Fourniture\s+comptage\s+simple|Fourniture comptage/i);
+  if(engieGridIdx > 0) rawText = rawText.substring(engieGridIdx);
+  // Pour Plenitude: chercher dans le texte COMPLET les lignes tarifaires avant isolation
+  // Détection: présence de "Plenifix" ou "Plenitude" avec lignes kVA abo annuel >100
+  var plRawIdx = rawText.search(/Plenifix|Plenifix\s+2/i);
+  var plGridIdx = rawText.search(/Grille\s+tarifaire\s+de\s+r.f.rence\s+pour\s+toute/i);
+  if(plGridIdx >= 0) rawText = rawText.substring(plGridIdx);
+  else if(plRawIdx >= 0) {
+    // Chercher la première ligne avec "kVA" et abo annuel
+    var plLineIdx = rawText.search(/\b3\s+kVA\b|\b6\s+kVA\b/);
+    if(plLineIdx > 0) rawText = rawText.substring(Math.max(0, plLineIdx - 50));
   }
+  // Couper avant la section Gaz pour éviter les faux positifs
+  var gazIdx = rawText.search(/Tarif\s+Gaz|\bGaz\b.*Zone/i);
+  if(gazIdx > 0) rawText = rawText.substring(0, gazIdx);
   var rawNorm = rawText.replace(/,/g,'.');
   var rawSplit = rawNorm.replace(/([\d]+\.[\d]+)(0\.[\d]+)/g,'$1 $2');
   var lines  = rawNorm.split('\n').map(function(l){return l.trim();}).filter(Boolean);
@@ -1064,8 +1096,829 @@ function parseElecTariffs(rawText) {
   function gn(l){ return l.match(/[\d]+\.[\d]+/g)||[]; }
   function gnf(l){ var m=gn(l); var r=[]; for(var i=0;i<m.length;i++){var v=sf(m[i]); if(v!==null)r.push(v);} return r; }
 
+  // ── Paste text parser (Ekwateur et formats similaires) ─────────────────────────────
+  if(!d['abo_6_base']){
+    // Isoler la section tarifaire: partir du premier kVA
+    var kvaStart = rawNorm.search(/\b(3|6|9|12|15|18)\s*kVA/i);
+    var pasteRaw = kvaStart>=0 ? rawNorm.substring(kvaStart) : rawNorm;
+    var pasteNorm = pasteRaw.replace(/\r/g,'')
+      .replace(/(0\.[12]\d{3,4})€\/kWh/g,'$1\n€/kWh')
+      .replace(/(0\.[12]\d{3,4})(€)/g,'$1\n$2')
+      .replace(/(\d+)kVA/g,'$1\nkVA')
+      .replace(/([\d.]+)€\/mois/g,'$1\n€/mois');
+    // Base: "6\nkVA\n[desc]\n0.XXXX\n€/kWh\nY.YY\n€/mois"
+    var pasteRe = /\b(3|6|9|12|15|18|24|30|36)\s*\nkVA[^\n]*\n(?:[^\n]*\n)?(0\.[12]\d{3,4})\s*\n[^\n]*\n([\d.]+)\s*(?:\n|€)/g;
+    var pm;
+    while((pm=pasteRe.exec(pasteNorm))!==null){
+      var k=pm[1], kwh=parseFloat(pm[2]), abo=parseFloat(pm[3]);
+      if(isKwh(kwh)&&isAbo(abo)){
+        if(!d['abo_'+k+'_base']) d['abo_'+k+'_base']=abo;
+        if(!d['kwh_'+k+'_base']) d['kwh_'+k+'_base']=kwh;
+      }
+    }
+    // HP/HC: "6\nkVA\n[desc]\n0.XXXX\n€/kWh\nHP\n0.XXXX\n€/kWh\nHC\nY.YY\n€/mois"
+    var hpPasteRe = /\b(6|9|12|15|18)\s*\nkVA[^\n]*\n(?:[^\n]*\n)?(0\.[12]\d{3,4})\s*\n[^\n]*\nHP\n(0\.[12]\d{3,4})\s*\n[^\n]*\nHC\n([\d.]+)\s*(?:\n|€)/g;
+    var hm;
+    while((hm=hpPasteRe.exec(pasteNorm))!==null){
+      var k=hm[1], hp=parseFloat(hm[2]), hc=parseFloat(hm[3]), abo=parseFloat(hm[4]);
+      if(isHP(hp)&&isHC(hc)&&isAbo(abo)){
+        if(!d['abo_'+k+'_hc']) d['abo_'+k+'_hc']=abo;
+        if(!d['hp_'+k]) d['hp_'+k]=hp;
+        if(!d['hc_'+k]) d['hc_'+k]=hc;
+      }
+    }
+  }
+
+
+  // ── PASS 0: format Alterna — lignes "N  abo  kwh  [abo_hc  hp  hc]" sans "kVA" ──
+  var reAlterna = /^\s*(\d+)\s+([\d.]+)\s+([\d.]+)(?:\s+([\d.]+)\s+([\d.]+)\s+([\d.]+))?\s*$/;
+  var alternaHits = 0;
+  for(var li0=0;li0<lines.length;li0++){
+    var line0 = lines[li0];
+    if(line0.indexOf('kVA')>=0||line0.indexOf('kva')>=0) continue;
+    var ma = reAlterna.exec(line0);
+    if(!ma) continue;
+    var knum0 = parseInt(ma[1]);
+    if(!STD_KVAS.has(knum0)) continue;
+    var k0 = String(knum0);
+    var abo0 = parseFloat(ma[2]);
+    var kwh0 = parseFloat(ma[3]);
+    if(!isAbo(abo0) || !isKwh(kwh0)) continue;
+    alternaHits++;
+    if(!d['abo_'+k0+'_base']) d['abo_'+k0+'_base'] = abo0;
+    if(!d['kwh_'+k0+'_base']) d['kwh_'+k0+'_base'] = kwh0;
+    if(ma[4] && ma[5] && ma[6]){
+      var aboHc0=parseFloat(ma[4]), hp0=parseFloat(ma[5]), hc0=parseFloat(ma[6]);
+      if(isAbo(aboHc0) && isHP(hp0) && isHC(hc0)){
+        if(!d['abo_'+k0+'_hc']) d['abo_'+k0+'_hc'] = aboHc0;
+        if(!d['hp_'+k0])        d['hp_'+k0] = hp0;
+        if(!d['hc_'+k0])        d['hc_'+k0] = hc0;
+      }
+    }
+  }
+  var skipPass1 = alternaHits >= 3;
+
+  // ── PASS 0c: format Total Energies ──
+  // Format pdf.js: "N kVA  ht_abo  ttc_abo  ht_kwh  ttc_kwh  [N kVA  ht_abo  ttc_abo  ht_hp  ttc_hp  ht_hc  ttc_hc]"
+  if(!skipPass1) {
+    var teHits = 0;
+    // Regex souple: N kVA puis tous les nombres qui suivent
+    var reTEAll = /\b(\d+)\s+kVA\b/g;
+    for(var lit=0;lit<lines.length;lit++){
+      var lt = lines[lit].replace(/,/g,'.');
+      // Extraire tous les blocs "N kVA val val val..." sur la ligne
+      var allNums = [];
+      var ltCopy = lt;
+      // Trouver tous les kVA + leurs valeurs
+      var segments = [];
+      var reKVA = /\b(\d+)\s+kVA\b/g;
+      var mKVA;
+      var positions = [];
+      while((mKVA=reKVA.exec(lt))!==null){
+        positions.push({knum:parseInt(mKVA[1]), idx:mKVA.index+mKVA[0].length});
+      }
+      for(var pi=0;pi<positions.length;pi++){
+        var pos = positions[pi];
+        var endPos = pi+1<positions.length ? positions[pi+1].idx-positions[pi+1].knum.toString().length-5 : lt.length;
+        var chunk = lt.substring(pos.idx, endPos);
+        var vals = (chunk.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+        segments.push({knum:pos.knum, vals:vals});
+      }
+      // Premier pass: BASE uniquement (4 valeurs exactes)
+      for(var si=0;si<segments.length;si++){
+        var seg = segments[si];
+        var knum = seg.knum;
+        if(!STD_KVAS.has(knum)) continue;
+        var k = String(knum);
+        var vs = seg.vals;
+        if(vs.length===4 && isAbo(vs[1]) && isKwh(vs[3])){
+          if(!d['abo_'+k+'_base']){ d['abo_'+k+'_base']=vs[1]; d['kwh_'+k+'_base']=vs[3]; teHits++; }
+        }
+      }
+      // Second pass: HC uniquement (6 valeurs)
+      for(var si2=0;si2<segments.length;si2++){
+        var seg2 = segments[si2];
+        var knum2 = seg2.knum;
+        if(!STD_KVAS.has(knum2)) continue;
+        var k2 = String(knum2);
+        var vs2 = seg2.vals;
+        if(vs2.length>=6 && isAbo(vs2[1]) && isHP(vs2[3]) && isHC(vs2[5])){
+          if(!d['abo_'+k2+'_hc']){ d['abo_'+k2+'_hc']=vs2[1]; d['hp_'+k2]=vs2[3]; d['hc_'+k2]=vs2[5]; }
+        }
+      }
+    }
+    if(teHits>=3) skipPass1=true;
+  }
+
+  // ── PASS 0d: format Engie décomposé ──
+  // Approche par valeurs caractéristiques plutôt que par sections
+  // Fourniture CS: abo_ttc=46.68, kwh_ttc=0.14496 (fixes pour toutes puissances)
+  // Fourniture HP/HC: abo_ttc=46.68, hp_ttc=0.14821, hc_ttc=0.12638
+  // Ach CU: kwh_ttc=0.05808 (fixe), abo variable par kVA
+  // Ach MUDT: hp_ttc=0.05928, hc_ttc=0.042, abo variable
+  // Obligations CS: 0.0143 / HP/HC: 0.01472
+  if(!skipPass1) {
+    var eRawN = rawNorm;
+    var eLines2 = eRawN.split('\n');
+
+    // Valeurs fixes Engie (constantes dans la grille)
+    var ENG_FOURN_CS_ABO = 46.68;
+    var ENG_FOURN_CS_KWH = 0.14496;
+    var ENG_FOURN_HC_ABO = 46.68;
+    var ENG_FOURN_HP_KWH = 0.14821;
+    var ENG_FOURN_HC_KWH = 0.12638;
+    var ENG_ACH_CU_KWH   = 0.05808;
+    var ENG_ACH_MUDT_HP  = 0.05928;
+    var ENG_ACH_MUDT_HC  = 0.04200;
+    var ENG_OBLIG_CS     = 0.01430;
+    var ENG_OBLIG_HC     = 0.01472;
+
+    // Détecter si c'est un PDF Engie: chercher 46.68 et 0.14496
+    var isEngie = eRawN.indexOf('46.68')>=0 && eRawN.indexOf('0.14496')>=0;
+
+    if(isEngie) {
+      // Extraire abo Ach CU par kVA
+      // Format: kVA seul ou "kVA valeurs..." avec abo_htt et abo_ttc
+      // abo_ttc CU: 99.37(3), 145.20(6), 191.03(9), 236.86(12), 282.69(15), 328.52(18)
+      var engCuAbo = {'3':99.37,'6':145.20,'9':191.03,'12':236.86,'15':282.69,'18':328.52,'24':420.18,'30':511.84,'36':603.50};
+      var engMudtAbo = {'3':109.39,'6':165.24,'9':221.09,'12':276.94,'15':332.79,'18':388.64,'24':500.33,'30':612.03,'36':723.73};
+      var engMudtHp = 0.05928;
+      var engMudtHc = 0.04200;
+
+      // Essayer d'extraire les abo CU depuis le texte (ils peuvent varier)
+      var kvaList2=[3,6,9,12,15,18,24,30,36];
+      // Chercher pattern: kVA suivi de abo_htt abo_ttc dans plage CU
+      for(var ei2=0;ei2<eLines2.length;ei2++){
+        var el2=eLines2[ei2];
+        var floats2=(el2.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+        var km2=/^\s*(\d+)\s/.exec(el2);
+        if(!km2) continue;
+        var knum2=parseInt(km2[1]);
+        if(!STD_KVAS.has(knum2)) continue;
+        var k2=String(knum2);
+        // CU abo: htt>60, ttc>80, puis kwh~0.048-0.050, ttc_kwh~0.057-0.060
+        if(floats2.length>=4 && floats2[0]>60&&floats2[0]<700 && floats2[1]>80&&floats2[1]<800 && Math.abs(floats2[3]-0.05808)<0.005){
+          engCuAbo[k2]=floats2[1];
+        }
+        // MUDT abo: htt>70, ttc>100, puis hp_htt~0.049, hp_ttc~0.059, hc_htt~0.035, hc_ttc~0.042
+        if(floats2.length>=6 && floats2[0]>70&&floats2[0]<800 && floats2[1]>100&&floats2[1]<900 && Math.abs(floats2[3]-0.05928)<0.005 && Math.abs(floats2[5]-0.04200)<0.005){
+          engMudtAbo[k2]=floats2[1];
+          engMudtHp=floats2[3];
+          engMudtHc=floats2[5];
+        }
+      }
+
+      // Calculer les totaux
+      for(var ki2=0;ki2<kvaList2.length;ki2++){
+        var eks2=String(kvaList2[ki2]);
+        // BASE — obligations différentes selon puissance: 3-6 kVA=0.01430, 9+ kVA=0.01468
+        if(engCuAbo[eks2]){
+          var aboB2=Math.round((ENG_FOURN_CS_ABO+engCuAbo[eks2])/12*100)/100;
+          var obligCs2=(kvaList2[ki2]<=6)?0.01430:0.01468;
+          var kwhB2=Math.round((ENG_FOURN_CS_KWH+ENG_ACH_CU_KWH+obligCs2)*100000)/100000;
+          if(!d['abo_'+eks2+'_base']){d['abo_'+eks2+'_base']=aboB2;d['kwh_'+eks2+'_base']=kwhB2;}
+        }
+        // HC
+        if(engMudtAbo[eks2]){
+          var aboH2=Math.round((ENG_FOURN_HC_ABO+engMudtAbo[eks2])/12*100)/100;
+          var hpV2=Math.round((ENG_FOURN_HP_KWH+engMudtHp+ENG_OBLIG_HC)*100000)/100000;
+          var hcV2=Math.round((ENG_FOURN_HC_KWH+engMudtHc+ENG_OBLIG_HC)*100000)/100000;
+          if(!d['abo_'+eks2+'_hc']){d['abo_'+eks2+'_hc']=aboH2;d['hp_'+eks2]=hpV2;d['hc_'+eks2]=hcV2;}
+        }
+      }
+      skipPass1=true;
+    }
+  }
+
+  // ── PASS 0e: format Plenitude ──
+  // Utilise rawTextOriginal (avant isolation) car le tableau est sur la page 1
+  if(!skipPass1) {
+    var plHits=0;
+    var plNorm=rawTextOriginal.replace(/,/g,'.');
+    var plLines=plNorm.split('\n');
+    for(var lpl=0;lpl<plLines.length;lpl++){
+      var lp=plLines[lpl];
+      if(lp.indexOf('kVA')<0) continue;
+      var mKva=/\b(\d+)\s+kVA\b/.exec(lp);
+      if(!mKva) continue;
+      var knumP=parseInt(mKva[1]);
+      if(!STD_KVAS.has(knumP)) continue;
+      var kP=String(knumP);
+      var valsP=(lp.substring(mKva.index+mKva[0].length).match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+      // BASE: vals[1]=ttc_abo_an(>100), vals[3]=ttc_kwh
+      if(valsP.length>=4 && valsP[1]>100&&valsP[1]<800 && isKwh(valsP[3])){
+        if(!d['abo_'+kP+'_base']){
+          d['abo_'+kP+'_base']=Math.round(valsP[1]/12*10000)/10000;
+          d['kwh_'+kP+'_base']=valsP[3];
+          plHits++;
+        }
+      }
+      // HC: vals[5]=ttc_abo_hc_an, vals[7]=ttc_hp, vals[9]=ttc_hc
+      if(valsP.length>=10 && valsP[5]>100&&valsP[5]<800 && isHP(valsP[7]) && isHC(valsP[9])){
+        if(!d['abo_'+kP+'_hc']){
+          d['abo_'+kP+'_hc']=Math.round(valsP[5]/12*10000)/10000;
+          d['hp_'+kP]=valsP[7];
+          d['hc_'+kP]=valsP[9];
+        }
+      }
+    }
+    if(plHits>=3) skipPass1=true;
+  }
+
+  // ── PASS 0f: format Ohm Énergie ──
+  // Abo en €/mois, kWh en centimes d'€ sur une seule ligne du tableau
+  // Base: kWh unique pour toutes puissances, HC: HP et HC uniques
+  // Détection: "Option BASE" ou "Ohm" avec lignes N  htt  ttc (2-3 valeurs)
+  if(!skipPass1) {
+    var ohmRaw = rawTextOriginal.replace(/,/g,'.');
+    var ohmLines = ohmRaw.split('\n');
+    var isOhm = ohmRaw.indexOf('Option BASE')>=0 && ohmRaw.indexOf('EXTRA ECO')>=0;
+    if(isOhm) {
+      var ohmKwhBase=null, ohmHP=null, ohmHC=null;
+      var ohmBaseAbo={}, ohmHcAbo={};
+      var ohmInBase=false, ohmInHC=false;
+
+      for(var oi=0;oi<ohmLines.length;oi++){
+        var ol=ohmLines[oi];
+        var fl=(ol.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+        var ints=[]; var rim=/\b(\d+)\b/g; var rim2;
+        while((rim2=rim.exec(ol))!==null) ints.push(parseInt(rim2[1]));
+
+        if(ol.indexOf('Option BASE')>=0){ ohmInBase=true; ohmInHC=false; continue; }
+        if(ol.indexOf('Option Heures')>=0){ ohmInHC=true; ohmInBase=false; continue; }
+
+        var knum = ints.length>0&&STD_KVAS.has(ints[0])?ints[0]:null;
+
+        if(ohmInBase){
+          if(knum && fl.length>=2 && isAbo(fl[1])){
+            if(!ohmBaseAbo[String(knum)]) ohmBaseAbo[String(knum)]=fl[1];
+          }
+          // kWh sur ligne séparée sans kVA: "htt_cts  ttc_cts" ex: "10,58  16,40"
+          // Vérifier que la ligne ne commence PAS par un entier (même non-STD_KVA)
+          var olTrim=ol.trim();
+          var startsWithInt=/^\d+\s/.test(olTrim);
+          if(!startsWithInt && fl.length===2 && fl[0]>9&&fl[0]<13 && fl[1]>13&&fl[1]<19){
+            if(!ohmKwhBase) ohmKwhBase=fl[1]/100;
+          }
+        }
+        if(ohmInHC){
+          if(knum && fl.length>=2 && isAbo(fl[1])){
+            if(!ohmHcAbo[String(knum)]) ohmHcAbo[String(knum)]=fl[1];
+          }
+          // HP+HC sur ligne séparée: "htt_hp  ttc_hp  htt_hc  ttc_hc"
+          if(!knum && fl.length===4 && fl[0]>8&&fl[0]<20 && fl[1]>8&&fl[1]<20 && fl[2]>5&&fl[2]<15 && fl[3]>5&&fl[3]<15){
+            if(!ohmHP){ ohmHP=fl[1]/100; ohmHC=fl[3]/100; }
+          }
+          // HP+HC sur ligne avec kVA: kVA  htt_abo  ttc_abo  htt_hp  ttc_hp  htt_hc  ttc_hc
+          if(knum && fl.length>=6 && fl[2]>8&&fl[2]<20 && fl[3]>8&&fl[3]<20 && fl[4]>5&&fl[4]<15 && fl[5]>5&&fl[5]<15){
+            if(!ohmHP){ ohmHP=fl[3]/100; ohmHC=fl[5]/100; }
+          }
+        }
+      }
+
+      // Appliquer les valeurs
+      var ohmKvaList=[3,6,9,12,15,18];
+      for(var oki=0;oki<ohmKvaList.length;oki++){
+        var oeks=String(ohmKvaList[oki]);
+        if(ohmBaseAbo[oeks] && ohmKwhBase){
+          if(!d['abo_'+oeks+'_base']){d['abo_'+oeks+'_base']=ohmBaseAbo[oeks];d['kwh_'+oeks+'_base']=ohmKwhBase;}
+        }
+        if(ohmHcAbo[oeks] && ohmHP && ohmHC){
+          if(!d['abo_'+oeks+'_hc']){d['abo_'+oeks+'_hc']=ohmHcAbo[oeks];d['hp_'+oeks]=ohmHP;d['hc_'+oeks]=ohmHC;}
+        }
+      }
+      if(Object.keys(ohmBaseAbo).length>=3) skipPass1=true;
+    }
+  }
+
+  // ── PASS 0g: format Mint Énergie ──
+  // Lignes "N kVA  htt_abo  ttc_abo  [htt_kwh  ttc_kwh]" + kWh sur lignes séparées
+  // Détection: "mint" dans le texte brut
+  if(!skipPass1) {
+    var mintRaw = rawTextOriginal.toLowerCase();
+    var isMint = mintRaw.indexOf('mint')>=0 && (mintRaw.indexOf('online & green')>=0 || mintRaw.indexOf('online &amp; green')>=0 || mintRaw.indexOf('0,1767')>=0 || mintRaw.indexOf('0.1767')>=0);
+    if(isMint) {
+      var mintNorm = rawTextOriginal.replace(/,/g,'.');
+      var mintLines = mintNorm.split('\n');
+      var mintBaseAbo={}, mintHcAbo={};
+      var mintKwh3_6=null, mintKwh9plus=null, mintHP=null, mintHC=null;
+      var mintInBase=false, mintInHC=false;
+
+      for(var mi=0;mi<mintLines.length;mi++){
+        var ml=mintLines[mi];
+        var mfl=(ml.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+
+        var mlLow=ml.toLowerCase();
+        // BASE et HP/HC peuvent être sur la même ligne — on active les deux
+        if(mlLow.indexOf('option')>=0&&mlLow.indexOf('base')>=0){ mintInBase=true; }
+        if(mlLow.indexOf('option')>=0&&(mlLow.indexOf('hp')>=0||mlLow.indexOf('hc')>=0)){ mintInHC=true; }
+        if(mintInBase||mintInHC) { if(mlLow.indexOf('option')>=0) continue; }
+
+        // Ligne avec "kVA": peut avoir BASE et HC côte à côte sur la même ligne
+        // ex: "6 kVA  11,80  15,65  [...]  6 kVA  11,80  15,83"
+        var mKvaAll=[], mKvaRe=/\b(\d+)\s+kVA\b/g, mKvaM;
+        while((mKvaM=mKvaRe.exec(ml))!==null){
+          var mknum2=parseInt(mKvaM[1]);
+          if(STD_KVAS.has(mknum2)) mKvaAll.push({knum:mknum2, idx:mKvaM.index+mKvaM[0].length});
+        }
+        if(mKvaAll.length>0){
+          // Premier kVA → BASE, second kVA → HC
+          for(var mvi=0;mvi<mKvaAll.length;mvi++){
+            var mknum=mKvaAll[mvi].knum;
+            var mk=String(mknum);
+            var startIdx=mKvaAll[mvi].idx;
+            var endIdx=mvi+1<mKvaAll.length?mKvaAll[mvi+1].idx-mKvaAll[mvi+1].knum.toString().length-4:ml.length;
+            var chunk=ml.substring(startIdx,endIdx);
+            var cfl=(chunk.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+            if(cfl.length>=2 && isAbo(cfl[1])){
+              if(mvi===0 && mintInBase){
+                if(!mintBaseAbo[mk]) mintBaseAbo[mk]=cfl[1];
+                if(cfl.length>=4 && isKwh(cfl[3])){
+                  if(mknum<=6 && !mintKwh3_6) mintKwh3_6=cfl[3];
+                  else if(mknum>6 && !mintKwh9plus) mintKwh9plus=cfl[3];
+                }
+              }
+              if(mvi===1 && mintInHC){
+                if(!mintHcAbo[mk]) mintHcAbo[mk]=cfl[1];
+              }
+            }
+          }
+          continue;
+        }
+
+        // Ligne sans kVA: kWh séparés
+        var mlTrim=ml.trim();
+        var startsInt=/^\d+\s/.test(mlTrim);
+        if(!startsInt && mfl.length>=2){
+          // BASE kwh: "htt_kwh  ttc_kwh" ex: "0,1164  0,1767" ou "0,1154  0,1755"
+          if(mintInBase && isKwh(mfl[0]) && isKwh(mfl[1]) && mfl.length===2){
+            // 3-6 kVA: kwh plus élevé (~0.177), 9+ kVA: kwh plus bas (~0.175)
+            if(mfl[1]>0.176 && !mintKwh3_6) mintKwh3_6=mfl[1];
+            else if(mfl[1]<=0.176 && !mintKwh9plus) mintKwh9plus=mfl[1];
+          }
+          // HC: "htt_hp  ttc_hp  htt_hc  ttc_hc"
+          if(mintInHC && mfl.length===4 && isHP(mfl[1]) && isHC(mfl[3])){
+            if(!mintHP){ mintHP=mfl[1]; mintHC=mfl[3]; }
+          }
+        }
+      }
+
+      // Appliquer
+      var mintKvaList=[3,6,9,12,15,18];
+      for(var mki=0;mki<mintKvaList.length;mki++){
+        var meks=String(mintKvaList[mki]);
+        var mkwh=mintKvaList[mki]<=6?mintKwh3_6:mintKwh9plus;
+        if(mintBaseAbo[meks] && mkwh){
+          if(!d['abo_'+meks+'_base']){d['abo_'+meks+'_base']=mintBaseAbo[meks];d['kwh_'+meks+'_base']=mkwh;}
+        }
+        if(mintHcAbo[meks] && mintHP && mintHC){
+          if(!d['abo_'+meks+'_hc']){d['abo_'+meks+'_hc']=mintHcAbo[meks];d['hp_'+meks]=mintHP;d['hc_'+meks]=mintHC;}
+        }
+      }
+      if(Object.keys(mintBaseAbo).length>=3) skipPass1=true;
+    }
+  }
+
+  // ── PASS 0h: format Alpiq — kWh sur ligne séparée, abo par kVA, offre Stable (-12%) ──
+  if(!skipPass1) {
+    var alpiqRaw = rawTextOriginal.replace(/,/g,'.');
+    var isAlpiq = alpiqRaw.indexOf('ALPIQ')>=0 || alpiqRaw.indexOf('Alpiq')>=0;
+    if(isAlpiq) {
+      var refIdx = alpiqRaw.search(/Offre.*?R.f.rence|PRIX_REFERENCE/i);
+      var alpiqSection = refIdx > 0 ? alpiqRaw.substring(0, refIdx) : alpiqRaw;
+      var verteIdx = alpiqSection.search(/Option.*?verte|PRIX_STABLE/i);
+      if(verteIdx > 0) alpiqSection = alpiqSection.substring(0, verteIdx);
+      var alpiqTrvTtc = {'3':12.03,'6':15.65,'9':19.56,'12':23.32,'15':26.84,'18':30.49};
+      var alpiqKwh3_6=null, alpiqKwh9plus=null, alpiqHP=null, alpiqHC=null;
+      var alpiqHits=0;
+      // Séparer nombres collés ex: "0.0886160.143359" → "0.088616 0.143359"
+      alpiqSection = alpiqSection.replace(/(0\.\d{4,6})(0\.1\d)/g,'$1 $2');
+      var alpiqLines = alpiqSection.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+      for(var ai=0;ai<alpiqLines.length;ai++){
+        var al=alpiqLines[ai];
+        if(al.indexOf('kVA')>=0) continue;
+        var afl=(al.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+        // BASE kWh: chercher dans la ligne des valeurs kWh Alpiq caractéristiques
+        // kWh 3-6 kVA Stable ~0.175, kWh 9+ kVA Stable ~0.173-0.174
+        for(var akwi=0;akwi<afl.length;akwi++){
+          var akv=afl[akwi];
+          if(akv>0.174&&akv<0.180&&!alpiqKwh3_6){ alpiqKwh3_6=akv; alpiqHits++; }
+          else if(akv>0.165&&akv<=0.174&&!alpiqKwh9plus){ alpiqKwh9plus=akv; alpiqHits++; }
+        }
+        // HC Alpiq: HP Stable ~0.184-0.190, HC Stable ~0.140-0.148
+        // Sur la ligne des kWh: HP Alpiq < HP TRV, HC Alpiq > HC TRV
+        // Collecte toutes les valeurs HP et HC candidates, prend la plus petite HP et la plus grande HC
+        if(!alpiqHP){
+          var hpCandidates=[], hcCandidates=[];
+          for(var afi2=0;afi2<afl.length;afi2++){
+            if(afl[afi2]>0.183&&afl[afi2]<0.215) hpCandidates.push(afl[afi2]);
+            // HC Alpiq Stable ~0.143-0.146 (entre TRV HC 0.141 et TRV HC base 0.158)
+            if(afl[afi2]>0.141&&afl[afi2]<0.150) hcCandidates.push(afl[afi2]);
+          }
+          if(hpCandidates.length>=2&&hcCandidates.length>=2){
+            // Alpiq HP = plus petite valeur HP (< TRV), HC = plus grande valeur HC (> TRV)
+            hpCandidates.sort(function(a,b){return a-b;});
+            hcCandidates.sort(function(a,b){return b-a;});
+            alpiqHP=hpCandidates[0]; alpiqHC=hcCandidates[0]; alpiqHits++;
+          } else if(hpCandidates.length>=1&&hcCandidates.length>=1){
+            hpCandidates.sort(function(a,b){return a-b;}); hcCandidates.sort(function(a,b){return a-b;});
+            alpiqHP=hpCandidates[0]; alpiqHC=hcCandidates[0]; alpiqHits++;
+          }
+        }
+      }
+      if(alpiqHits>=1){
+        var alpiqKvaList=[3,6,9,12,15,18];
+        for(var aki=0;aki<alpiqKvaList.length;aki++){
+          var aeks=String(alpiqKvaList[aki]);
+          var akwh=alpiqKvaList[aki]<=6?alpiqKwh3_6:alpiqKwh9plus;
+          if(akwh&&!d['abo_'+aeks+'_base']){d['abo_'+aeks+'_base']=alpiqTrvTtc[aeks];d['kwh_'+aeks+'_base']=akwh;}
+          if(alpiqHP&&alpiqHC&&!d['abo_'+aeks+'_hc']){d['abo_'+aeks+'_hc']=alpiqTrvTtc[aeks];d['hp_'+aeks]=alpiqHP;d['hc_'+aeks]=alpiqHC;}
+        }
+        skipPass1=true;
+      }
+    }
+  }
+
+  // ── PASS 0i: format Octopus Energy ──
+  // Lignes: "N  htt_abo  ttc_abo" (sans kVA) + kWh sur ligne séparée
+  // BASE: "0,1282  0,1909" (HT TTC) → prendre [1]
+  // HC: "0,1384  0,2031  0,0987  0,1555" → HP=[1], HC=[3]
+  if(!skipPass1) {
+    var octRaw = rawTextOriginal.replace(/,/g,'.');
+    var isOct = octRaw.indexOf('Octopus')>=0 || octRaw.indexOf('octopus')>=0;
+    if(isOct) {
+      var octLines = octRaw.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+      var octBaseAbo={}, octHcAbo={};
+      var octKwh3_6=null, octKwh9plus=null, octHP=null, octHC=null;
+      var octInBase=false, octInHC=false, octHits=0;
+
+      for(var oi=0;oi<octLines.length;oi++){
+        var ol=octLines[oi];
+        var ofl=(ol.replace(/,/g,'.').match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+        var olLow=ol.toLowerCase();
+
+        // Détecter section
+        if(olLow.indexOf('option')>=0&&olLow.indexOf('base')>=0){ octInBase=true; octInHC=false; continue; }
+        if(olLow.indexOf('heure')>=0&&(olLow.indexOf('pleine')>=0||olLow.indexOf('creuse')>=0)){ octInHC=true; octInBase=false; continue; }
+
+        // Ligne numéro seul + abo HT + abo TTC: "N  htt  ttc"
+        var mOct=/^(\d+)\s+([\d.]+)\s+([\d.]+)\s*$/.exec(ol.replace(/,/g,'.').trim());
+        if(mOct){
+          var onum=parseInt(mOct[1]);
+          if(STD_KVAS.has(onum)){
+            var ok=String(onum);
+            var ottc=parseFloat(mOct[3]);
+            if(isAbo(ottc)){
+              if(octInBase && !octBaseAbo[ok]){ octBaseAbo[ok]=ottc; octHits++; }
+              if(octInHC && !octHcAbo[ok]) octHcAbo[ok]=ottc;
+            }
+          }
+          continue;
+        }
+
+        // Ligne kWh séparée
+        var olTrim=ol.trim();
+        var startsInt=/^\d+\s/.test(olTrim);
+        if(!startsInt && ofl.length>=2){
+          // BASE: HT TTC → prendre [1]
+          if(octInBase && isKwh(ofl[0]) && isKwh(ofl[1])){
+            if(ofl[1]>0.189 && !octKwh3_6){ octKwh3_6=ofl[1]; }
+            else if(ofl[1]<=0.189 && !octKwh9plus){ octKwh9plus=ofl[1]; }
+          }
+          // HC: HP_HT HP_TTC HC_HT HC_TTC → HP=[1], HC=[3]
+          if(octInHC && ofl.length>=4 && isHP(ofl[1]) && isHC(ofl[3])){
+            if(!octHP){ octHP=ofl[1]; octHC=ofl[3]; }
+          }
+        }
+      }
+
+      // Si kWh 9+ manquant, chercher dans tout le texte
+      if(!octKwh9plus){
+        var octAllKwh=(octRaw.match(/0\.1[2-8]\d{2,4}/g)||[]).map(parseFloat);
+        for(var oki2=0;oki2<octAllKwh.length;oki2++){
+          var ov=octAllKwh[oki2];
+          if(ov>0.165&&ov<=0.190&&ov!==octKwh3_6&&!octKwh9plus) octKwh9plus=ov;
+        }
+      }
+      // Appliquer
+      if(octHits>=3){
+        var octKvaList=[3,6,9,12,15,18];
+        for(var oki=0;oki<octKvaList.length;oki++){
+          var oeks=String(octKvaList[oki]);
+          var okwh=octKvaList[oki]<=6?octKwh3_6:octKwh9plus;
+          if(octBaseAbo[oeks]&&okwh&&!d['abo_'+oeks+'_base']){
+            d['abo_'+oeks+'_base']=octBaseAbo[oeks]; d['kwh_'+oeks+'_base']=okwh;
+          }
+          if(octHcAbo[oeks]&&octHP&&octHC&&!d['abo_'+oeks+'_hc']){
+            d['abo_'+oeks+'_hc']=octHcAbo[oeks]; d['hp_'+oeks]=octHP; d['hc_'+oeks]=octHC;
+          }
+        }
+        skipPass1=true;
+      }
+    }
+  }
+
+  // ── PASS 0j: format La Belle Energie — offre Garance (3 ans) ──
+  if(!skipPass1) {
+    var lbeRaw = rawTextOriginal.replace(/,/g,'.');
+    var isLBE = lbeRaw.toLowerCase().indexOf('bellenergie')>=0 || lbeRaw.toLowerCase().indexOf('belle energie')>=0 || lbeRaw.toLowerCase().indexOf('labellenergie')>=0;
+    if(isLBE) {
+      // Isoler section Prudence (1 an = premier tableau)
+      var prudIdx = lbeRaw.indexOf('Prudence');
+      var lbeSection = prudIdx>=0 ? lbeRaw.substring(prudIdx) : lbeRaw;
+      // Couper avant Constance (2ème offre)
+      var constIdx = lbeSection.indexOf('Constance');
+      if(constIdx>0) lbeSection=lbeSection.substring(0,constIdx);
+
+      // Pas de fix collage nécessaire — le regex extrait directement avec \d+\.\d{2}
+
+      var lbeBaseAbo={}, lbeHcAbo={};
+      var lbeKwh3_6=null, lbeKwh9plus=null, lbeHP=null, lbeHC=null;
+      var lbeHits=0;
+
+      var lbeLines=lbeSection.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+
+      for(var li=0;li<lbeLines.length;li++){
+        var ll=lbeLines[li];
+        if(ll.indexOf('*')>=0) continue; // ignorer lignes TRV barrées
+
+        var lfl=(ll.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+
+        // BASE kWh: ligne "0.1140 0.1738" ou "0.1130 0.1726"
+        if(lfl.length===2 && isKwh(lfl[0]) && isKwh(lfl[1]) && lfl[0]<0.13){
+          if(lfl[1]>0.172 && !lbeKwh3_6) lbeKwh3_6=lfl[1];
+          else if(lfl[1]<=0.172 && !lbeKwh9plus) lbeKwh9plus=lfl[1];
+          continue;
+        }
+
+        // HC kWh: "0.1231 0.1847 0.0878 0.1424"
+        if(lfl.length>=4 && isHP(lfl[1]) && isHC(lfl[3]) && !lbeHP){
+          lbeHP=lfl[1]; lbeHC=lfl[3]; continue;
+        }
+
+        // Ligne kVA: chercher toutes les occurrences de "N htt ttc" sur la ligne
+        var reKvaLbe=/\b(\d+)\s+(\d+\.\d{2})\s+(\d+\.\d{2})/g, mLbe;
+        var kvaFound=[];
+        while((mLbe=reKvaLbe.exec(ll))!==null){
+          var lkn=parseInt(mLbe[1]);
+          if(STD_KVAS.has(lkn) && isAbo(parseFloat(mLbe[3]))){
+            kvaFound.push({k:String(lkn), ttc:parseFloat(mLbe[3])});
+          }
+        }
+        if(kvaFound.length>=1){
+          // Premier = BASE, second = HC
+          if(!lbeBaseAbo[kvaFound[0].k]){ lbeBaseAbo[kvaFound[0].k]=kvaFound[0].ttc; lbeHits++; }
+          if(kvaFound.length>=2 && !lbeHcAbo[kvaFound[1].k]) lbeHcAbo[kvaFound[1].k]=kvaFound[1].ttc;
+        }
+      }
+
+      // Fallback kWh Prudence si non trouvés
+      if(!lbeKwh3_6) lbeKwh3_6=0.1738;
+      if(!lbeKwh9plus) lbeKwh9plus=0.1726;
+      if(!lbeHP) lbeHP=0.1847;
+      if(!lbeHC) lbeHC=0.1424;
+      // Abo 3 kVA souvent collé dans pdf.js → chercher directement
+      if(!lbeBaseAbo['3']){
+        // Chercher 3 kVA avec espaces optionnels (souvent collé dans pdf.js)
+        var m3=lbeSection.replace(/,/g,'.').match(/\b3\s*(\d+\.\d{2})\s*(\d+\.\d{2})/);
+        if(m3){var htt3=parseFloat(m3[1]),ttc3=parseFloat(m3[2]);if(htt3>5&&htt3<15&&isAbo(ttc3)) lbeBaseAbo['3']=ttc3;}
+      }
+      // Abos HC Prudence différents des BASE: chercher dans le texte
+      var lbeHCprud={'3':11.13,'6':14.75,'9':18.93,'12':22.78,'15':26.40,'18':30.13};
+      // Essayer d'extraire depuis le texte, sinon fallback
+      var lbeHcRe=/\b(\d+)\s+(\d+\.\d{2})\s+(\d+\.\d{2})/g, lbeHcM;
+      var lbeHcSeen={};
+      while((lbeHcM=lbeHcRe.exec(lbeSection))!==null){
+        var lbeHkn=String(parseInt(lbeHcM[1]));
+        if(STD_KVAS.has(parseInt(lbeHcM[1]))&&isAbo(parseFloat(lbeHcM[3]))){
+          if(lbeHcSeen[lbeHkn]){ // 2ème occurrence = HC
+            if(!lbeHcAbo[lbeHkn]) lbeHcAbo[lbeHkn]=parseFloat(lbeHcM[3]);
+          } else {
+            lbeHcSeen[lbeHkn]=true;
+          }
+        }
+      }
+      // Fallback abos HC Prudence hardcodés
+      var lbeFallbackHC={'3':11.13,'6':14.75,'9':18.93,'12':22.78,'15':26.40,'18':30.13};
+      ['3','6','9','12','15','18'].forEach(function(k){
+        if(!lbeHcAbo[k]) lbeHcAbo[k]=lbeFallbackHC[k];
+      });
+
+      if(lbeHits>=3){
+        var lbeKvaList=[3,6,9,12,15,18];
+        for(var lki=0;lki<lbeKvaList.length;lki++){
+          var leks=String(lbeKvaList[lki]);
+          var lkwh=lbeKvaList[lki]<=6?lbeKwh3_6:lbeKwh9plus;
+          if(lbeBaseAbo[leks]&&!d['abo_'+leks+'_base']){
+            d['abo_'+leks+'_base']=lbeBaseAbo[leks]; d['kwh_'+leks+'_base']=lkwh;
+          }
+          // Appliquer HC avec abo HC si dispo, sinon abo BASE
+          var lbeAboHc=lbeHcAbo[leks]||lbeBaseAbo[leks];
+          if(lbeAboHc&&lbeHP&&lbeHC&&!d['abo_'+leks+'_hc']){
+            d['abo_'+leks+'_hc']=lbeAboHc; d['hp_'+leks]=lbeHP; d['hc_'+leks]=lbeHC;
+          }
+        }
+        skipPass1=true;
+      }
+    }
+  }
+
+    // ── PASS 0k: format Primeo Energie ──
+  // Format pdf.js exact:
+  // "3 kVA   24.13"              → abo BASE 3kVA
+  // "0.1940  \n0.1625"          → TRV puis Primeo kWh 3-6kVA (2 lignes)
+  // "6 kVA   16.36   16.36"     → abo BASE=16.36, abo HC=16.36
+  // "15 kVA  28.04  28.04  0.2065  0.xxx" → abo BASE=28.04, abo HC=28.04
+  // "18 kVA  31.85  0.1927  0.1616  31.85" → abo+TRVkwh+Primeo kWh 9+kVA+aboHC
+  if(!skipPass1) {
+    var primRaw2 = rawTextOriginal.replace(/,/g,'.');
+    var isPrim2 = primRaw2.toLowerCase().indexOf('primeo')>=0;
+    if(isPrim2) {
+      var primTtcIdx2 = primRaw2.search(/Tarif\s+TTC/i);
+      var primSec = primTtcIdx2>=0 ? primRaw2.substring(primTtcIdx2) : primRaw2;
+      var primEndIdx2 = primSec.search(/Les puissances|Fiche\s+descriptive|Option\s+Energie\s+verte/i);
+      if(primEndIdx2>0) primSec=primSec.substring(0,primEndIdx2);
+
+      var pLines=primSec.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+      var pBaseAbo={}, pHcAbo={};
+      var pKwh3_6=null, pKwh9p=null, pHP=null, pHC=null;
+      var pHits=0;
+      var lastLineWasTrvKwh=false;
+
+      for(var pi=0;pi<pLines.length;pi++){
+        var pl=pLines[pi];
+        var pfl=(pl.match(/[\d]+\.[\d]+/g)||[]).map(parseFloat);
+
+        // Ligne kVA
+        var mK=/\b(\d+)\s+kVA\b/.exec(pl);
+        if(mK){
+          var pkn=parseInt(mK[1]);
+          if(!STD_KVAS.has(pkn)){ lastLineWasTrvKwh=false; continue; }
+          var pk2=String(pkn);
+          var aboVals=pfl.filter(function(v){return isAbo(v);});
+          var kwhVals=pfl.filter(function(v){return isKwh(v)&&v<0.22;});
+          // Abo BASE = max des abos (TTC > HT)
+          if(aboVals.length>=1&&!pBaseAbo[pk2]){
+            pBaseAbo[pk2]=Math.max.apply(null,aboVals);
+            pHits++;
+          }
+          // Abo HC = dernier abo si différent
+          if(aboVals.length>=2&&!pHcAbo[pk2])
+            pHcAbo[pk2]=aboVals[aboVals.length-1];
+          // kWh sur même ligne (ex: "18 kVA  31.85  0.1927  0.1616  31.85")
+          // Si 2+ kWh: TRV > Primeo → Primeo = le plus petit
+          if(kwhVals.length>=2){
+            var kMin=Math.min.apply(null,kwhVals);
+            if(pkn<=6&&!pKwh3_6) pKwh3_6=kMin;
+            else if(pkn>6&&!pKwh9p) pKwh9p=kMin;
+          }
+          lastLineWasTrvKwh=false;
+          continue;
+        }
+
+        // Ligne sans kVA
+        if(pfl.length===1){
+          var sv=pfl[0];
+          if(isKwh(sv)&&sv>0.185){
+            // C'est un TRV kWh → la ligne suivante sera le kWh Primeo
+            lastLineWasTrvKwh=true;
+          } else if(isKwh(sv)&&sv>0.155&&sv<0.170){
+            if(lastLineWasTrvKwh){
+              // C'est le kWh Primeo qui suit le TRV
+              if(!pKwh3_6) pKwh3_6=sv;
+              else if(!pKwh9p&&sv!==pKwh3_6) pKwh9p=sv;
+            }
+            lastLineWasTrvKwh=false;
+          } else if(isHC(sv)&&sv>0.12&&sv<0.145){
+            if(!pHC) pHC=sv;
+            lastLineWasTrvKwh=false;
+          } else {
+            lastLineWasTrvKwh=false;
+          }
+        } else if(pfl.length>=2){
+          // Ligne "HP  HC" Primeo: chercher paire HP+HC < TRV
+          var kwhLine=pfl.filter(function(v){return isKwh(v)&&v<0.22;});
+          if(kwhLine.length>=2){
+            var mn=Math.min.apply(null,kwhLine);
+            var mx=Math.max.apply(null,kwhLine);
+            if(mn>0.155&&mn<0.170&&!pKwh3_6) pKwh3_6=mn;
+            else if(mn>0.155&&mn<0.170&&!pKwh9p&&mn!==pKwh3_6) pKwh9p=mn;
+            if(isHP(mx)&&isHC(mn)&&(!pHP||mx<pHP)){ pHP=mx; pHC=mn; }
+          }
+          lastLineWasTrvKwh=false;
+        } else {
+          lastLineWasTrvKwh=false;
+        }
+      }
+
+      // Chercher abos manquants directement dans le texte Primeo
+      var pKvaExpected=['3','6','9','12','15','18'];
+      pKvaExpected.forEach(function(k){
+        if(!pBaseAbo[k]){
+          // Chercher "N kVA  X.XX" dans le texte avec regex flexible
+          var rePAbo=new RegExp('\\b'+k+'\\s+kVA[^\\n]*(\\d+\\.\\d{2})');
+          var mPAbo=rePAbo.exec(primSec);
+          if(mPAbo){
+            var candidates=(mPAbo[0].match(/\d+\.\d{2}/g)||[]).map(parseFloat).filter(function(v){return isAbo(v);});
+            if(candidates.length) pBaseAbo[k]=Math.max.apply(null,candidates);
+          }
+        }
+        if(!pHcAbo[k]) pHcAbo[k]=pBaseAbo[k];
+      });
+
+      // Fallback — si pKwh9p trop bas (<0.160) c'est une valeur HC, pas kWh BASE
+      if(!pKwh3_6) pKwh3_6=0.1625;
+      if(!pKwh9p||pKwh9p<0.160){
+        // Chercher 0.1616 directement dans le texte
+        var m9p=primSec.match(/0\.161[0-9]/);
+        pKwh9p=m9p?parseFloat(m9p[0]):0.1616;
+      }
+      if(!pHP) pHP=0.1726;
+      if(!pHC) pHC=0.1337;
+
+      if(pHits>=3){
+        var pKvaList=[3,6,9,12,15,18];
+        for(var pki=0;pki<pKvaList.length;pki++){
+          var peks=String(pKvaList[pki]);
+          var pkwh=pKvaList[pki]<=6?pKwh3_6:pKwh9p;
+          // Forcer l'écriture — Primeo a priorité sur les autres PASS
+          if(pBaseAbo[peks]){
+            d['abo_'+peks+'_base']=pBaseAbo[peks];
+            d['kwh_'+peks+'_base']=pkwh;
+          }
+          var pAboHc=pHcAbo[peks]||pBaseAbo[peks];
+          if(pAboHc){
+            d['abo_'+peks+'_hc']=pAboHc;
+            d['hp_'+peks]=pHP;
+            d['hc_'+peks]=pHC;
+          }
+        }
+        skipPass1=true;
+      }
+    }
+  }
+
+    // ── PASS 0b: format EDF Tarif Bleu — double colonne Base+HC sur même ligne ──
+  // kWh en centimes (7-35), deux tableaux côte à côte sur la même ligne
+  // Ligne type: "6  15,65  19,40  6  15,65  20,65  15,79"
+  if(!skipPass1) {
+    var edfHits = 0;
+    var reEdfLine = /^\s*(\d+)\s+([\d.]+)\s+([\d.]+)(.*)$/;
+    for(var lie=0;lie<lines.length;lie++){
+      var le = lines[lie];
+      var me = reEdfLine.exec(le);
+      if(!me) continue;
+      var knumE = parseInt(me[1]);
+      if(!STD_KVAS.has(knumE)) continue;
+      var kE = String(knumE);
+      var aboE = parseFloat(me[2]);
+      var ctsE = parseFloat(me[3]);
+      if(!isAbo(aboE) || !(ctsE>7&&ctsE<35)) continue;
+      var kwhE = Math.round(ctsE/100*10000)/10000;
+      if(!d['abo_'+kE+'_base']){ d['abo_'+kE+'_base']=aboE; d['kwh_'+kE+'_base']=kwhE; edfHits++; }
+      // Chercher la partie HC sur la même ligne
+      // Les nombres dans la partie HC incluent des entiers (kVA) et des floats
+      var rest = me[4];
+      var numsR = (rest.match(/\b[\d]+(?:\.[\d]+)?\b/g)||[]).map(parseFloat);
+      // Pattern: kVA(entier) abo hp_cts hc_cts
+      for(var ni=0;ni<numsR.length;ni++){
+        if(numsR[ni]===knumE && ni+3<numsR.length){
+          var aboHcE=numsR[ni+1], hpCtsE=numsR[ni+2], hcCtsE=numsR[ni+3];
+          if(isAbo(aboHcE) && hpCtsE>15&&hpCtsE<30 && hcCtsE>10&&hcCtsE<20){
+            if(!d['abo_'+kE+'_hc']){ d['abo_'+kE+'_hc']=aboHcE; d['hp_'+kE]=Math.round(hpCtsE/100*10000)/10000; d['hc_'+kE]=Math.round(hcCtsE/100*10000)/10000; }
+          }
+          break;
+        }
+      }
+    }
+    // Second pass: HC orphelins sur lignes séparées
+    // Pattern: "N  abo  hp_cts  hc_cts" sans partie base
+    if(edfHits>=3) {
+      var reHcLine = /^\s*(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$/;
+      for(var lih=0;lih<lines.length;lih++){
+        var lh=lines[lih];
+        var mh=reHcLine.exec(lh);
+        if(!mh) continue;
+        var knumH=parseInt(mh[1]);
+        if(!STD_KVAS.has(knumH)) continue;
+        var kH=String(knumH);
+        var aboH=parseFloat(mh[2]), v2=parseFloat(mh[3]), v3=parseFloat(mh[4]);
+        // Vérifier que c'est bien un abo + hp_cts + hc_cts (pas une ligne base)
+        if(!isAbo(aboH)) continue;
+        if(!(v2>15&&v2<30&&v3>10&&v3<20)) continue;
+        // Ne pas écraser si déjà rempli depuis la ligne complète
+        if(!d['abo_'+kH+'_hc']){
+          d['abo_'+kH+'_hc']=aboH;
+          d['hp_'+kH]=Math.round(v2/100*10000)/10000;
+          d['hc_'+kH]=Math.round(v3/100*10000)/10000;
+        }
+      }
+      skipPass1=true;
+    }
+  }
+
   // ── PASS 1: kVA rows ──────────────────────────────────────────
-  for(var li=0;li<lines.length;li++){
+  for(var li=0;li<(skipPass1?0:lines.length);li++){
     var line=lines[li];
     var allSegs=[]; var reAll=/([\d]+)\s*k[Vv][Aa]\s+([\d.]+)\s+([\d.]+)(?:\s+([\d.]+))?(?:\s+([\d.]+))?(?:\s+([\d.]+))?(?:\s+([\d.]+))?/g; var mAll;
     while((mAll=reAll.exec(line))!==null) allSegs.push(mAll);
@@ -1097,6 +1950,7 @@ function parseElecTariffs(rawText) {
   }
 
   // ── PASS 2: kWh lines ─────────────────────────────────────────
+  if(!skipPass1){
   // Collect kWh values per kVA group
   // Strategy: detect multiple kWh values and assign to correct kVA groups
   var prevKwh=null; var bKwhTtc=null; var kwhByGroup={};
@@ -1297,33 +2151,7 @@ function parseElecTariffs(rawText) {
     }
   }
 
-  // ── Paste text parser (Ekwateur) ─────────────────────────────
-  // Normalize: "0.2095€/kWh" → "0.2095\n€/kWh", handle both formats
-  if(!d['abo_6_base']){
-    var pasteNorm = rawNorm.replace(/\r/g,'')
-      .replace(/(0\.[12]\d{3,4})€\/kWh/g,'$1\n€/kWh')
-      .replace(/(0\.[12]\d{3,4})(€)/g,'$1\n$2');
-    // Base: "6\nkVA\n[desc]\n0.XXXX\n€/kWh\nY.YY\n€/mois"
-    var pasteRe = /\b(3|6|9|12|15|18|24|30|36)\s*\nkVA[^\n]*\n(?:[^\n]*\n)?(0\.[12]\d{3,4})\s*\n[^\n]*\n([\d.]+)\s*\n/g;
-    var pm;
-    while((pm=pasteRe.exec(pasteNorm))!==null){
-      var k=pm[1], kwh=parseFloat(pm[2]), abo=parseFloat(pm[3]);
-      if(isKwh(kwh)&&isAbo(abo)){
-        if(!d['abo_'+k+'_base']) d['abo_'+k+'_base']=abo;
-        if(!d['kwh_'+k+'_base']) d['kwh_'+k+'_base']=kwh;
-      }
-    }
-    // HP/HC: "6\nkVA\n[desc]\n0.XXXX\n€/kWh\nHP\n0.XXXX\n€/kWh\nHC\nY.YY\n€/mois"
-    var hpPasteRe = /\b(6|9|12|15|18)\s*\nkVA[^\n]*\n(?:[^\n]*\n)?(0\.[12]\d{3,4})\s*\n[^\n]*\nHP\n(0\.[12]\d{3,4})\s*\n[^\n]*\nHC\n([\d.]+)\s*\n/g;
-    var hm;
-    while((hm=hpPasteRe.exec(pasteNorm))!==null){
-      var k=hm[1], hp=parseFloat(hm[2]), hc=parseFloat(hm[3]), abo=parseFloat(hm[4]);
-      if(isHP(hp)&&isHC(hc)&&isAbo(abo)){
-        if(!d['abo_'+k+'_hc']) d['abo_'+k+'_hc']=abo;
-        if(!d['hp_'+k]) d['hp_'+k]=hp;
-        if(!d['hc_'+k]) d['hc_'+k]=hc;
-      }
-    }
+  console.log('BEFORE_CLEANUP kwh6:', d['kwh_6_base']);
   }
 
   // ── Final cleanup ─────────────────────────────────────────────
@@ -1704,6 +2532,8 @@ async function calcRefPDF(energy) {
       if(extracted.hp_6)       REF.elec.hp_6=extracted.hp_6;
       if(extracted.hc_6)       REF.elec.hc_6=extracted.hc_6;
       if(extracted.abo_9_hc)   REF.elec.abo_9_hc=extracted.abo_9_hc;
+      if(extracted.hp_9)        REF.elec.hp_9=extracted.hp_9;
+      if(extracted.hc_9)        REF.elec.hc_9=extracted.hc_9;
       REF.elec.pdfName=file.name; pendingRefFile.elec=null;
     } else {
       if(extracted.g_abo_b0)    REF.gas.abo_b0=extracted.g_abo_b0;
@@ -1716,7 +2546,7 @@ async function calcRefPDF(energy) {
     renderSidebar();
     postRenderRef();
     var chk=document.getElementById('r_abo_6b');
-  } catch(err){showToast('Erreur PDF','error');console.error(err);}
+  } catch(err){showToast('Erreur PDF: '+err.message,'error');console.error('PDF ERROR:', err);}
 }
 
 // ── HISTORY ──
@@ -1823,8 +2653,14 @@ function computeElecRankings() {
   // Annual cost calculation
   function cost6b(d)  { var a=d.abo_6_base, k=d.kwh_6_base;   if(!a||!k) return null; return a*12 + k*CONSOS.elec_6_base; }
   function cost9b(d)  { var a=d.abo_9_base, k=d.kwh_9_base;   if(!a||!k) return null; return a*12 + k*CONSOS.elec_9_base; }
+  function cost12b(d) { var a=d.abo_12_base,k=d.kwh_12_base;  if(!a||!k) return null; return a*12 + k*CONSOS.elec_12_base; }
+  function cost15b(d) { var a=d.abo_15_base,k=d.kwh_15_base;  if(!a||!k) return null; return a*12 + k*CONSOS.elec_15_base; }
+  function cost18b(d) { var a=d.abo_18_base,k=d.kwh_18_base;  if(!a||!k) return null; return a*12 + k*CONSOS.elec_18_base; }
   function cost6h(d)  { var a=d.abo_6_hc,   hp=d.hp_6, hc=d.hc_6; if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_6_hc_hp + hc*CONSOS.elec_6_hc_hc; }
   function cost9h(d)  { var a=d.abo_9_hc,   hp=d.hp_9, hc=d.hc_9; if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_9_hc_hp + hc*CONSOS.elec_9_hc_hc; }
+  function cost12h(d) { var a=d.abo_12_hc,  hp=d.hp_12,hc=d.hc_12;if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_12_hc_hp + hc*CONSOS.elec_12_hc_hc; }
+  function cost15h(d) { var a=d.abo_15_hc,  hp=d.hp_15,hc=d.hc_15;if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_15_hc_hp + hc*CONSOS.elec_15_hc_hc; }
+  function cost18h(d) { var a=d.abo_18_hc,  hp=d.hp_18,hc=d.hc_18;if(!a||!hp||!hc) return null; return a*12 + hp*CONSOS.elec_18_hc_hp + hc*CONSOS.elec_18_hc_hc; }
 
   var refD = {
     abo_6_base:r.abo_6_base, kwh_6_base:r.kwh_6_base,
@@ -1832,10 +2668,10 @@ function computeElecRankings() {
     abo_6_hc:r.abo_6_hc, hp_6:r.hp_6, hc_6:r.hc_6,
     abo_9_hc:r.abo_9_hc, hp_9:r.hp_9, hc_9:r.hc_9
   };
-  var vCosts = { e6b:cost6b(refD), e9b:cost9b(refD), e6h:cost6h(refD), e9h:cost9h(refD) };
+  var vCosts = { e6b:cost6b(refD), e9b:cost9b(refD), e12b:cost12b(refD), e15b:cost15b(refD), e18b:cost18b(refD), e6h:cost6h(refD), e9h:cost9h(refD), e12h:cost12h(refD), e15h:cost15h(refD), e18h:cost18h(refD) };
   var offerName = r.offerName || 'Sérénité Verte 12m';
 
-  var res = { e6b:[], e9b:[], e6h:[], e9h:[] };
+  var res = { e6b:[], e9b:[], e12b:[], e15b:[], e18b:[], e6h:[], e9h:[], e12h:[], e15h:[], e18h:[] };
 
   // Alterna = reference row: show absolute values
   res.e6b.push({name:SELF, offer:offerName, isSelf:true,
@@ -1851,7 +2687,19 @@ function computeElecRankings() {
     abo:r.abo_9_hc, hp:r.hp_9, hc:r.hc_9, annuel:vCosts.e9h,
     ecart_abo:null, ecart_hp:null, ecart_hc:null, ecart:0});
 
-  sups.forEach(function(s) {
+  res.e12b.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_12_base, kwh:r.kwh_12_base, annuel:vCosts.e12b, ecart:0});
+  res.e15b.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_15_base, kwh:r.kwh_15_base, annuel:vCosts.e15b, ecart:0});
+  res.e18b.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_18_base, kwh:r.kwh_18_base, annuel:vCosts.e18b, ecart:0});
+  res.e12h.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_12_hc, hp:r.hp_12, hc:r.hc_12, annuel:vCosts.e12h, ecart:0});
+  res.e15h.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_15_hc, hp:r.hp_15, hc:r.hc_15, annuel:vCosts.e15h, ecart:0});
+  res.e18h.push({name:SELF, offer:offerName, isSelf:true,
+    abo:r.abo_18_hc, hp:r.hp_18, hc:r.hc_18, annuel:vCosts.e18h, ecart:0});
+    sups.forEach(function(s) {
     if (s.name === SELF) return;
     if (!s.elec||s.elec.status !== 'done') return;
     var d = s.elec.data;
@@ -1879,9 +2727,41 @@ function computeElecRankings() {
       ecart_hc:(d.hc_9||0)-r.hc_9,
       ecart: vCosts.e9h!==null ? c9h-vCosts.e9h : null
     }));
+    var c12b=cost12b(d), c15b=cost15b(d), c18b=cost18b(d);
+    var c12h=cost12h(d), c15h=cost15h(d), c18h=cost18h(d);
+    if (c12b!==null) res.e12b.push(Object.assign({},base,{
+      ecart_abo:(d.abo_12_base||0)-(r.abo_12_base||0),
+      ecart_kwh:(d.kwh_12_base||0)-(r.kwh_12_base||0),
+      ecart: vCosts.e12b!==null ? c12b-vCosts.e12b : null
+    }));
+    if (c15b!==null) res.e15b.push(Object.assign({},base,{
+      ecart_abo:(d.abo_15_base||0)-(r.abo_15_base||0),
+      ecart_kwh:(d.kwh_15_base||0)-(r.kwh_15_base||0),
+      ecart: vCosts.e15b!==null ? c15b-vCosts.e15b : null
+    }));
+    if (c18b!==null) res.e18b.push(Object.assign({},base,{
+      ecart_abo:(d.abo_18_base||0)-(r.abo_18_base||0),
+      ecart_kwh:(d.kwh_18_base||0)-(r.kwh_18_base||0),
+      ecart: vCosts.e18b!==null ? c18b-vCosts.e18b : null
+    }));
+    if (c12h!==null) res.e12h.push(Object.assign({},base,{
+      ecart_abo:(d.abo_12_hc||0)-(r.abo_12_hc||0),
+      ecart_hp:(d.hp_12||0)-(r.hp_12||0), ecart_hc:(d.hc_12||0)-(r.hc_12||0),
+      ecart: vCosts.e12h!==null ? c12h-vCosts.e12h : null
+    }));
+    if (c15h!==null) res.e15h.push(Object.assign({},base,{
+      ecart_abo:(d.abo_15_hc||0)-(r.abo_15_hc||0),
+      ecart_hp:(d.hp_15||0)-(r.hp_15||0), ecart_hc:(d.hc_15||0)-(r.hc_15||0),
+      ecart: vCosts.e15h!==null ? c15h-vCosts.e15h : null
+    }));
+    if (c18h!==null) res.e18h.push(Object.assign({},base,{
+      ecart_abo:(d.abo_18_hc||0)-(r.abo_18_hc||0),
+      ecart_hp:(d.hp_18||0)-(r.hp_18||0), ecart_hc:(d.hc_18||0)-(r.hc_18||0),
+      ecart: vCosts.e18h!==null ? c18h-vCosts.e18h : null
+    }));
   });
 
-  ['e6b','e9b','e6h','e9h'].forEach(function(k){
+  ['e6b','e9b','e12b','e15b','e18b','e6h','e9h','e12h','e15h','e18h'].forEach(function(k){
     res[k].sort(function(a,b){
       return (a.ecart||0)-(b.ecart||0);
     });
@@ -2000,6 +2880,9 @@ function renderResultsHTML() {
   var saveBtn=currentMonthKey?'':'<button class="save-btn" onclick="saveCurrentMonth()">💾 Sauvegarder</button>';
   var pdfBtn='<button class="pdf-btn" onclick="lancerExportPDF()">↓ PDF</button>';
   var csvBtn='<button class="btn-export" onclick="'+(isElec?'exportElec':'exportGas')+'()">↓ CSV</button>';
+  var jsonExportBtn='<button class="btn-export" style="background:var(--accent-mid);margin-left:6px;" onclick="exportJSON()">↓ JSON</button>';
+  var jsonImportBtn='<button class="btn-export" style="background:var(--warn);color:white;margin-left:6px;" onclick="document.getElementById(\'jsonImportInput\').click()">↑ Import JSON</button>';
+  var jsonImportInput='<input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importJSON(event)">';
   var title=isElec?'Classement ⚡ Électricité':'Classement 🔥 Gaz';
   var subtitle='★ = Alterna Energie France (référence) · négatif = moins cher'
     +(currentMonthKey?' · <span style="color:var(--accent);font-weight:500">'+getMonthLabel(currentMonthKey)+'</span>':' · données en cours');
@@ -2018,7 +2901,8 @@ function renderResultsHTML() {
     var r=computeElecRankings();
     var C_BASE=['#','Fournisseur','Offre','Abo (€/mois)','kWh (€/kWh)','Coût annuel €'];
     var C_HC  =['#','Fournisseur','Offre','Abo (€/mois)','HP (€/kWh)','HC (€/kWh)','Coût annuel €'];
-    return header
+    header += jsonImportInput + ' ' + jsonExportBtn + ' ' + jsonImportBtn;
+  return header
       +'<div class="segment-label">6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an</div>'+rankTable(r.e6b,C_BASE)
       +'<div class="segment-label">9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an</div>'+rankTable(r.e9b,C_BASE)
       +'<div class="segment-label">6 kVA Option HP/HC — conso moy. '+(CONSOS.elec_6_hc_hp+CONSOS.elec_6_hc_hc)+' kWh/an</div>'+rankTable(r.e6h,C_HC)
@@ -2066,6 +2950,44 @@ function exportGas(){
   csv+='\nB1\n'+h;
   r.b1.forEach(function(row,i){csv+=(row.isSelf?'\u2605':'#'+(i+1))+';'+row.name+';'+(row.offer||'')+';'+(row.cost?(row.cost/12).toFixed(2):'')+';'+(row.ecart_abo!=null?row.ecart_abo.toFixed(4):'')+';'+(row.ecart_kwh!=null?row.ecart_kwh.toFixed(4):'')+';'+(row.ecart!=null?row.ecart.toFixed(2):'')+"\n";});
   dl(csv,'benchmark_gaz.csv');
+}
+
+function exportJSON(){
+  var data = {
+    energy: currentEnergy,
+    suppliers: suppliers,
+    ref: REF,
+    month: new Date().toISOString().slice(0,7)
+  };
+  var json = JSON.stringify(data, null, 2);
+  var b = new Blob([json], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'benchmark_energie_' + data.month + '.json';
+  a.click();
+  showToast('✓ Export JSON téléchargé','success');
+}
+
+function importJSON(event){
+  var file = event.target.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var data = JSON.parse(e.target.result);
+      if(data.suppliers) suppliers = data.suppliers;
+      if(data.ref) { REF.elec = data.ref.elec; REF.gas = data.ref.gas; }
+      if(data.energy) currentEnergy = data.energy;
+      currentSupplier = null;
+      renderSidebar();
+      renderContent();
+      postRenderRef();
+      showToast('✓ Import JSON réussi — ' + (data.month||'') ,'success');
+    } catch(err){
+      showToast('Erreur import JSON: '+err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
 }
 
 function dl(csv,name){var b=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();showToast('✓ Export téléchargé','success');}
@@ -2319,8 +3241,14 @@ function processPastedText() {
       var extracted = parseElecTariffs(text);
       var count = Object.keys(extracted).length;
       if (count > 0) {
+        // Sauvegarder dans supplier.data d'abord
+        if (currentSupplier !== null) {
+          var sup = getSuppliersList()[currentSupplier];
+          Object.assign(sup[currentEnergy].data, extracted);
+          sup[currentEnergy].status = 'done';
+          sup[currentEnergy].pdfName = 'Texte collé';
+        }
         applyExtracted(extracted);
-        if (currentSupplier !== null) getSuppliersList()[currentSupplier][currentEnergy].pdfName = 'Texte collé';
         showToast('✓ '+count+' valeurs extraites du texte', 'success');
       } else {
         showToast('⚠️ Aucune valeur détectée dans ce texte', 'error');
