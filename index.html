@@ -2629,13 +2629,7 @@ function loadMonth(key){
   renderSidebar(); renderContent();
 }
 function loadCurrentWork(){currentMonthKey=null;renderContent();}
-function deleteMonth(key){
-  if(!confirm('Supprimer le benchmark '+getMonthLabel(key)+' ?')) return;
-  delete history[key];
-  try{localStorage.setItem('benchmark_history',JSON.stringify(history));}catch(e){}
-  if(currentMonthKey===key) currentMonthKey=null;
-  renderContent();
-}
+// deleteMonth défini plus haut
 function getPrevMonthKey(key){var keys=Object.keys(history).sort();var idx=keys.indexOf(key);return idx>0?keys[idx-1]:null;}
 function getActiveSuppliers(){
   var list = getSuppliersList();
