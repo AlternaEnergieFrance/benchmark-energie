@@ -2838,50 +2838,69 @@ function computeGasRankings() {
 function rankTable(data, cols) {
   if (!data.length) return '<p style="font-size:12px;color:var(--text3);padding:8px 0;">Aucune donnée</p>';
   var isHC = cols.includes('HP (€/kWh)');
-  // Headers: pour Alterna = valeurs absolues, pour concurrents = écarts
   var headers = cols.map(function(c,i){
     if(i<=2) return '<th>'+c+'</th>';
-    // Colonnes de valeurs : double lecture
     var ecartLabel = c.replace('kWh (€/kWh)','Écart kWh').replace('HP (€/kWh)','Écart HP').replace('HC (€/kWh)','Écart HC').replace('Coût annuel €','Écart annuel €');
-    return '<th><span style="color:var(--text3);font-size:9px;display:block;font-weight:400;">★ '+c+'</span><span style="font-size:9px;display:block;font-weight:400;color:var(--text3)"># '+ecartLabel+'</span></th>';
+    return '<th><span style="color:var(--text3);font-size:9px;display:block;font-weight:400;">★ '+c+'</span><span style="font-size:9px;display:block;font-weight:400;color:var(--text3)"># '+ecartLabel+' / %TRV</span></th>';
   }).join('');
+
+  // Trouver le coût annuel TRV (EDF) pour calcul % 
+  var trvRow = data.find(function(r){return r.name==='EDF' && !r.isSelf;});
+  var trvAnnuel = trvRow ? trvRow.annuel : null;
+
+  // Calculer le vrai rang de chaque ligne (TRV et Alterna inclus dans le rang)
+  var sorted = data.slice().sort(function(a,b){return (a.annuel||0)-(b.annuel||0);});
+
   var rows = data.map(function(row, i) {
     var isSelf = row.isSelf;
-    var rankCls = isSelf ? 'rank self' : (i<3 ? 'rank top' : 'rank');
-    var nameCls = isSelf ? 'supplier-cell self' : 'supplier-cell';
-    var rankLabel = isSelf ? '★' : (function(){
-      var pos = data.filter(function(r){return !r.isSelf;}).indexOf(row) + 1;
-      return '#'+pos;
-    })();
-    var rowCls = isSelf ? 'class="ref-row"' : '';
+    var isTRV = row.name === 'EDF' && !isSelf;
+    var realRank = sorted.indexOf(row) + 1;
 
-    var cells = '<td class="'+rankCls+'">'+rankLabel+'</td>'
-      + '<td class="'+nameCls+'">'+row.name+'</td>'
+    // Styles
+    var rowStyle = '';
+    var rankLabel = '';
+    if(isSelf){
+      rowStyle = 'background:#e8f7f0;';
+      rankLabel = '#'+realRank;
+    } else if(isTRV){
+      rowStyle = 'background:#e8f0ff;';
+      rankLabel = 'TRV';
+    } else {
+      rankLabel = '#'+realRank;
+    }
+
+    var rankCls = isSelf ? 'rank self' : (realRank<=3 ? 'rank top' : 'rank');
+    var nameCls = isSelf ? 'supplier-cell self' : (isTRV ? 'supplier-cell' : 'supplier-cell');
+
+    var cells = '<td class="'+rankCls+'" style="'+(isTRV?'color:#2255cc;font-weight:700;':isSelf?'color:#1a8a5a;font-weight:700;':'')+'">'+rankLabel+'</td>'
+      + '<td class="'+nameCls+'" style="'+(isTRV?'color:#2255cc;font-weight:600;':isSelf?'color:#1a8a5a;font-weight:600;':'')+'">'+row.name+(isTRV?' <span style="font-size:9px;background:#2255cc;color:white;padding:1px 4px;border-radius:3px;">TRV</span>':'')+'</td>'
       + '<td class="offer-cell">'+(row.offer||'—')+'</td>';
 
-    if (isSelf) {
-      // Show absolute values for Alterna
+    if(isSelf || isTRV){
+      // Valeurs absolues pour Alterna et EDF TRV
       function fmtV(v){if(v===null||v===undefined||isNaN(v)||v==='')return '—';return +v;}
       cells += '<td class="num">'+fmtV(row.abo)+'</td>';
-      if (isHC) {
+      if(isHC){
         cells += '<td class="num">'+fmtV(row.hp)+'</td>';
         cells += '<td class="num">'+fmtV(row.hc)+'</td>';
       } else {
         cells += '<td class="num">'+fmtV(row.kwh)+'</td>';
       }
-      cells += '<td class="num">'+(row.annuel!==null&&row.annuel!==undefined ? Math.round(row.annuel)+' €' : '—')+'</td>';
+      cells += '<td class="num">'+(row.annuel!=null?Math.round(row.annuel)+' €':'—')+'</td>';
     } else {
-      // Show ecarts for competitors
+      // Écarts + % vs TRV pour concurrents
+      var pct = (trvAnnuel && row.annuel!=null) ? ((row.annuel - trvAnnuel)/trvAnnuel*100) : null;
+      var pctStr = pct!=null ? ' <span style="font-size:10px;opacity:0.8;">('+( pct>=0?'+':'')+pct.toFixed(1)+'%)</span>' : '';
       cells += '<td class="num">'+fmtE(row.ecart_abo,2)+'</td>';
-      if (isHC) {
+      if(isHC){
         cells += '<td class="num">'+fmtE(row.ecart_hp,4)+'</td>';
         cells += '<td class="num">'+fmtE(row.ecart_hc,4)+'</td>';
       } else {
         cells += '<td class="num">'+fmtE(row.ecart_kwh,4)+'</td>';
       }
-      cells += '<td class="num">'+fmtE(row.ecart,0)+'</td>';
+      cells += '<td class="num">'+fmtE(row.ecart,0)+pctStr+'</td>';
     }
-    return '<tr '+rowCls+'>'+cells+'</tr>';
+    return '<tr style="'+rowStyle+'">'+cells+'</tr>';
   }).join('');
   return '<table><thead><tr>'+headers+'</tr></thead><tbody>'+rows+'</tbody></table>';
 }
