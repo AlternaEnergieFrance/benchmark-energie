@@ -209,7 +209,7 @@ const SUPPLIERS = [
   'Ekwateur','Alpiq','Octopus','La Belle Energie','Primeo'
 ];
 const SUPPLIERS_GAZ = [
-  'EDF','Total Energies','Engie','Plenitude','Ohm','Octopus'
+  'EDF','Total Energies','Engie','Plenitude','Ohm','Octopus','Happ-e'
 ];
 
 let suppliers = SUPPLIERS.map(function(name){ return {
@@ -276,8 +276,8 @@ const REF = {
   },
   gas:{
     offerName:'', pdfName:null,
-    abo_b0:null, kwh_b0_z1:null, kwh_b0_z2:null,
-    abo_b1:null, kwh_b1_z1:null, kwh_b1_z2:null
+    abo_b0:null, abo_b0_z1:null, abo_b0_z2:null, kwh_b0_z1:null, kwh_b0_z2:null,
+    abo_b1:null, abo_b1_z1:null, abo_b1_z2:null, kwh_b1_z1:null, kwh_b1_z2:null
   }
 };
 let pendingRefFile = {elec:null, gas:null};
@@ -422,13 +422,18 @@ function renderSidebar() {
           <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px;">Nom de l’offre</label>
           <input type="text" value="${REF.gas.offerName}" style="width:100%;padding:5px 7px;border:1px solid #F0C090;border-radius:5px;font-size:11px;background:white;color:var(--text);outline:none;" oninput="REF.gas.offerName=this.value">
         </div>
+        <button onclick="var d=document.getElementById('ref-gas-details');d.style.display=d.style.display==='none'?'block':'none'" style="width:100%;text-align:left;font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 8px;cursor:pointer;margin-bottom:4px;">▶ Voir / modifier les tarifs</button>
+        <div id="ref-gas-details" style="display:none">
         <div class="ref-grid">
-          <div class="ref-field gas"><label>Abo B0 (€/mois)</label><input type="number" id="rg_abo_b0" value="${REF.gas.abo_b0!=null?REF.gas.abo_b0:''}" step="any" oninput="REF.gas.abo_b0=parseFloat(this.value);renderResults()"></div>
+          <div class="ref-field gas"><label>Abo B0 Zone1 (€/mois)</label><input type="number" id="rg_abo_b0z1" value="${REF.gas.abo_b0_z1!=null?REF.gas.abo_b0_z1:''}" step="any" oninput="REF.gas.abo_b0_z1=parseFloat(this.value);renderResults()"></div>
           <div class="ref-field gas"><label>kWh B0 Zone1 (€/kWh)</label><input type="number" id="rg_k_b0" value="${REF.gas.kwh_b0_z1!=null?REF.gas.kwh_b0_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b0_z1=parseFloat(this.value);renderResults()"></div>
+          <div class="ref-field gas"><label>Abo B0 Zone2 (€/mois)</label><input type="number" id="rg_abo_b0z2" value="${REF.gas.abo_b0_z2!=null?REF.gas.abo_b0_z2:''}" step="any" oninput="REF.gas.abo_b0_z2=parseFloat(this.value);renderResults()"></div>
           <div class="ref-field gas"><label>kWh B0 Zone2 (€/kWh)</label><input type="number" id="rg_k_b0z2" value="${REF.gas.kwh_b0_z2!=null?REF.gas.kwh_b0_z2.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b0_z2=parseFloat(this.value);renderResults()"></div>
-          <div class="ref-field gas"><label>Abo B1 (€/mois)</label><input type="number" id="rg_abo_b1" value="${REF.gas.abo_b1!=null?REF.gas.abo_b1:''}" step="any" oninput="REF.gas.abo_b1=parseFloat(this.value);renderResults()"></div>
+          <div class="ref-field gas"><label>Abo B1 Zone1 (€/mois)</label><input type="number" id="rg_abo_b1z1" value="${REF.gas.abo_b1_z1!=null?REF.gas.abo_b1_z1:''}" step="any" oninput="REF.gas.abo_b1_z1=parseFloat(this.value);renderResults()"></div>
           <div class="ref-field gas"><label>kWh B1 Zone1 (€/kWh)</label><input type="number" id="rg_k_b1" value="${REF.gas.kwh_b1_z1!=null?REF.gas.kwh_b1_z1.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b1_z1=parseFloat(this.value);renderResults()"></div>
+          <div class="ref-field gas"><label>Abo B1 Zone2 (€/mois)</label><input type="number" id="rg_abo_b1z2" value="${REF.gas.abo_b1_z2!=null?REF.gas.abo_b1_z2:''}" step="any" oninput="REF.gas.abo_b1_z2=parseFloat(this.value);renderResults()"></div>
           <div class="ref-field gas"><label>kWh B1 Zone2 (€/kWh)</label><input type="number" id="rg_k_b1z2" value="${REF.gas.kwh_b1_z2!=null?REF.gas.kwh_b1_z2.toFixed(4):''}" step="0.0001" oninput="REF.gas.kwh_b1_z2=parseFloat(this.value);renderResults()"></div>
+        </div>
         </div>
       </div>
     </div>`;
@@ -511,8 +516,8 @@ function buildMonthBar() {
     var bg = active ? 'var(--accent)' : 'transparent';
     var col = active ? 'white' : 'var(--text2)';
     return '<span style="display:inline-flex;align-items:center;gap:1px;">'
-      + '<button ondblclick="renameMonth(' + JSON.stringify(k) + ')" onclick="loadMonth(' + JSON.stringify(k) + ')" title="Double-clic pour renommer" style="font-size:11px;padding:3px 8px;border-radius:4px 0 0 4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>'
-      + '<button onclick="deleteMonth(' + JSON.stringify(k) + ')" title="Supprimer ce mois" style="font-size:10px;padding:3px 5px;border-radius:0 4px 4px 0;border:1px solid ' + border + ';border-left:none;background:' + bg + ';color:' + (active?'rgba(255,255,255,0.7)':'var(--text3)') + ';cursor:pointer;line-height:1;">✕</button>'
+      + '<button ondblclick=\'renameMonth(' + JSON.stringify(k) + ')\' onclick=\'loadMonth(' + JSON.stringify(k) + ')\' title="Double-clic pour renommer" style="font-size:11px;padding:3px 8px;border-radius:4px 0 0 4px;border:1px solid ' + border + ';background:' + bg + ';color:' + col + ';cursor:pointer;">' + getMonthLabel(k) + '</button>'
+      + '<button onclick=\'deleteMonth(' + JSON.stringify(k) + ')\' title="Supprimer ce mois" style="font-size:10px;padding:3px 5px;border-radius:0 4px 4px 0;border:1px solid ' + border + ';border-left:none;background:' + bg + ';color:' + (active?'rgba(255,255,255,0.7)':'var(--text3)') + ';cursor:pointer;line-height:1;">✕</button>'
       + '</span>';
   }).join('');
 
@@ -525,21 +530,23 @@ function buildMonthBar() {
 }
 
 function deleteMonth(key) {
-  if(!confirm('Supprimer le mois « ' + getMonthLabel(key) + ' » ?')) return;
-  delete history[key];
-  if(window.monthLabels) delete monthLabels[key];
-  if(currentMonthKey === key) {
-    currentMonthKey = null;
-    // Reset to empty working state
-    suppliers = SUPPLIERS.map(function(n){ return {name:n,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
-    suppliersGaz = SUPPLIERS_GAZ.map(function(n){ return {name:n,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
-  }
-  try {
-    localStorage.setItem('benchmark_history', JSON.stringify(history));
-    localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels||{}));
-  } catch(e){}
-  renderSidebar(); renderContent();
-  showToast('✓ Mois supprimé', 'success');
+  showConfirmModal('Supprimer le mois « ' + getMonthLabel(key) + ' » ?', function(ok) {
+    if(!ok) return;
+    delete history[key];
+    if(window.monthLabels) delete monthLabels[key];
+    if(currentMonthKey === key) {
+      currentMonthKey = null;
+      // Reset to empty working state
+      suppliers = SUPPLIERS.map(function(n){ return {name:n,url:'',elec:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+      suppliersGaz = SUPPLIERS_GAZ.map(function(n){ return {name:n,url:'',gas:{data:{},status:'empty',pdfName:null,decomposed:false}}; });
+    }
+    try {
+      localStorage.setItem('benchmark_history', JSON.stringify(history));
+      localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels||{}));
+    } catch(e){}
+    renderSidebar(); renderContent();
+    showToast('✓ Mois supprimé', 'success');
+  });
 }
 
 function renameMonth(key) {
@@ -799,32 +806,30 @@ function renderElecFields(d, decomposed) {
 }
 
 function renderGasFields(d, decomposed) {
-  // Gas: B0 (≤6MWh) and B1 (>6MWh), with zone pricing
+  // Gas: B0 (≤6MWh) and B1 (>6MWh), avec un couple Abo + kWh par zone (1 à 6)
   const zones = ['Zone 1','Zone 2','Zone 3','Zone 4','Zone 5','Zone 6'];
   if (!decomposed) {
+    function zoneRows(band) {
+      return zones.map(function(z, i) {
+        var n = i + 1;
+        var aboVal = d['g_abo_'+band+'_z'+n] != null ? d['g_abo_'+band+'_z'+n] : (d['g_abo_'+band] != null ? d['g_abo_'+band] : '');
+        var kwhVal = d['g_kwh_'+band+'_z'+n] != null ? d['g_kwh_'+band+'_z'+n] : '';
+        return '<div class="power-row" style="grid-template-columns:70px 1fr 1fr;" id="grw_'+band+'_z'+n+'">'
+          + '<div class="power-label">'+z+'</div>'
+          + '<div class="field"><label>Abo (€/mois)</label><input type="number" id="g_abo_'+band+'_z'+n+'" value="'+aboVal+'" step="any" oninput="mrkE(\'grw_'+band+'_z'+n+'\')"></div>'
+          + '<div class="field"><label>kWh (€/kWh)</label><input type="number" id="g_kwh_'+band+'_z'+n+'" value="'+kwhVal+'" step="any" oninput="mrkE(\'grw_'+band+'_z'+n+'\')"></div>'
+          + '</div>';
+      }).join('');
+    }
     const b0Row = `
       <div style="margin-bottom:12px;">
         <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px;">B0 — Cuisine &amp; Eau chaude (≤ 6 MWh, conso moy. ${CONSOS.gas_b0} kWh/an)</div>
-        <div class="power-row" style="grid-template-columns:100px 1fr 1fr;">
-          <div class="power-label">Abo (€/mois)</div>
-          <div class="field"><label>Abo (€/mois)</label><input type="number" id="g_abo_b0" value="${d.g_abo_b0||''}" step="any" oninput="mrkE('grw_b0')"></div>
-          <div class="field"><label>kWh Zone1 (€/kWh)</label><input type="number" id="g_kwh_b0_z1" value="${d.g_kwh_b0_z1||''}" step="any" oninput="mrkE('grw_b0')"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px;">
-          ${zones.map((z,i)=>`<div class="field"><label>${z} (€/kWh)</label><input type="number" id="g_kwh_b0_z${i+1}" value="${d['g_kwh_b0_z'+(i+1)]||''}" step="any"></div>`).join('')}
-        </div>
+        ${zoneRows('b0')}
       </div>`;
     const b1Row = `
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px;">B1 — Chauffage individuel (&gt; 6 MWh, conso moy. ${CONSOS.gas_b1} kWh/an)</div>
-        <div class="power-row" style="grid-template-columns:100px 1fr 1fr;">
-          <div class="power-label">Abo (€/mois)</div>
-          <div class="field"><label>Abo (€/mois)</label><input type="number" id="g_abo_b1" value="${d.g_abo_b1||''}" step="any"></div>
-          <div class="field"><label>kWh Zone1 (€/kWh)</label><input type="number" id="g_kwh_b1_z1" value="${d.g_kwh_b1_z1||''}" step="any"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px;">
-          ${zones.map((z,i)=>`<div class="field"><label>${z} (€/kWh)</label><input type="number" id="g_kwh_b1_z${i+1}" value="${d['g_kwh_b1_z'+(i+1)]||''}" step="any"></div>`).join('')}
-        </div>
+        ${zoneRows('b1')}
       </div>`;
     return `<div class="form-section"><div class="form-section-title">Tarifs Gaz — TTC</div>${b0Row}${b1Row}</div>`;
   } else {
@@ -975,12 +980,13 @@ function saveSupplier(e) {
   } else {
     if (!isDecomposed) {
       ['b0','b1'].forEach(b=>{
-        const a=document.getElementById('g_abo_'+b)?.value;
-        if(a) d['g_abo_'+b]=parseFloat(a);
         [1,2,3,4,5,6].forEach(z=>{
+          const a=document.getElementById('g_abo_'+b+'_z'+z)?.value;
+          if(a) d['g_abo_'+b+'_z'+z]=parseFloat(a);
           const w=document.getElementById('g_kwh_'+b+'_z'+z)?.value;
           if(w) d['g_kwh_'+b+'_z'+z]=parseFloat(w);
         });
+        if(d['g_abo_'+b+'_z1']!=null) d['g_abo_'+b]=d['g_abo_'+b+'_z1'];
       });
     } else {
       ['b0','b1'].forEach(b=>{
@@ -2178,7 +2184,455 @@ function parseElecTariffs(rawText) {
 
 
 
+// ── ALTERNA (gaz): grille nationale par code postal, TTC uniquement ────
+// Sépare deux nombres décimaux collés sans espace par l'extraction PDF
+// (ex: pdf.js peut produire "0.16820.1231" au lieu de "0.1682 0.1231").
+function despacePasteDecimals(text) {
+  for (var i = 0; i < 6; i++) {
+    var next = text.replace(/(\d+\.\d+)(\d+\.\d+)/g, '$1 $2');
+    if (next === text) break;
+    text = next;
+  }
+  return text;
+}
+
+// Format: "Mon gaz naturel" + "Tarifs TTC" + lignes "CP NOM_COMMUNE abo_b0 kwh_b0 abo_b1 kwh_b1"
+// Pas de zonage dans cette grille : on cible Paris 15e (75015),
+// et à défaut on retombe sur la première ligne valide (valeur générique),
+// en dupliquant la valeur kWh sur les 6 zones puisqu'il n'existe qu'une seule valeur.
+function parseAlternaGas(rawText) {
+  if (!/Mon gaz naturel/i.test(rawText)) return null;
+  // NB: on cible le vrai en-tête de section TTC ("Tarifs TTC-applicables"),
+  // pas la mention "Voir les tarifs TTC" (lien texte) qui apparaît en page 1.
+  var ttcIdx = rawText.search(/Tarifs\s+TTC[\s-]*applicables/i);
+  if (ttcIdx < 0) return null; // on ne prend que la section TTC, jamais HT
+  var section = rawText.substring(ttcIdx);
+  var norm = despacePasteDecimals(section.replace(/,/g, '.'));
+  var lines = norm.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  var reRow = /^(\d{5})\s+(.+?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$/;
+  var parisRow = null, firstRow = null;
+  for (var i = 0; i < lines.length; i++) {
+    var m = reRow.exec(lines[i]);
+    if (!m) continue;
+    var cp = m[1];
+    var aboB0 = parseFloat(m[3]), kwhB0 = parseFloat(m[4]);
+    var aboB1 = parseFloat(m[5]), kwhB1 = parseFloat(m[6]);
+    if (!(aboB0 > 5 && aboB0 < 40)) continue;
+    if (!(kwhB0 > 0.05 && kwhB0 < 0.30)) continue;
+    if (!(aboB1 > 10 && aboB1 < 80)) continue;
+    if (!(kwhB1 > 0.03 && kwhB1 < 0.25)) continue;
+    var row = { aboB0: aboB0, kwhB0: kwhB0, aboB1: aboB1, kwhB1: kwhB1 };
+    if (!firstRow) firstRow = row;
+    if (cp === '75015') { parisRow = row; break; }
+  }
+  var chosen = parisRow || firstRow;
+  if (!chosen) return null;
+  var result = { g_abo_b0: chosen.aboB0, g_abo_b1: chosen.aboB1 };
+  for (var zn = 1; zn <= 6; zn++) {
+    result['g_abo_b0_z' + zn] = chosen.aboB0;
+    result['g_kwh_b0_z' + zn] = chosen.kwhB0;
+    result['g_abo_b1_z' + zn] = chosen.aboB1;
+    result['g_kwh_b1_z' + zn] = chosen.kwhB1;
+  }
+  return result;
+}
+
+// ── EDF (gaz): grille "Avantage Gaz" — lignes "Zone N  abo_c1 kwh_c1  abo_c2 kwh_c2  abo_c3 kwh_c3" ──
+// CONSO1 (cuisson/eau chaude, <4000 kWh/an) -> mappé sur B0 (conso réf. outil: 2500 kWh/an)
+// CONSO3 (chauffage, >11000 kWh/an)         -> mappé sur B1 (conso réf. outil: 13500 kWh/an)
+// Les 6 zones de la grille EDF sont toutes extraites (Zone 1 à Zone 6).
+function parseEDFGas(rawText) {
+  if (!/Avantage\s+Gaz/i.test(rawText)) return null;
+  var norm = despacePasteDecimals(rawText.replace(/,/g, '.'));
+  var lines = norm.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  var reZone = /^Zone\s*(\d)\b(.*)$/i;
+  var zones = {};
+  for (var i = 0; i < lines.length; i++) {
+    var m = reZone.exec(lines[i]);
+    if (!m) continue;
+    var zoneNum = parseInt(m[1]);
+    if (zoneNum < 1 || zoneNum > 6) continue;
+    var nums = (m[2].match(/[\d]+\.[\d]+/g) || []).map(parseFloat);
+    if (nums.length < 6) continue;
+    zones[zoneNum] = { aboC1: nums[0], kwhC1: nums[1], aboC3: nums[4], kwhC3: nums[5] };
+  }
+  var z1 = zones[1];
+  if (!z1) return null;
+  var result = { g_abo_b0: z1.aboC1, g_abo_b1: z1.aboC3 };
+  for (var zn = 1; zn <= 6; zn++) {
+    var row = zones[zn] || z1; // repli sur Zone1 si une zone est absente de la grille lue
+    result['g_abo_b0_z' + zn] = row.aboC1;
+    result['g_kwh_b0_z' + zn] = row.kwhC1;
+    result['g_abo_b1_z' + zn] = row.aboC3;
+    result['g_kwh_b1_z' + zn] = row.kwhC3;
+  }
+  return result;
+}
+
+// ── TOTAL ENERGIES (gaz): grille "T1/T2 x Zone 1-6" indexée sur le PRVG ──
+// T1 (cuisson/eau chaude, <4 MWh/an) -> B0 ; T2 (chauffage, ≥4 MWh/an) -> B1.
+// Chaque ligne "Zone N  abo_HT abo_TTC kwh_HT kwh_TTC" ; les 6 lignes Zone1-6
+// du bloc T1 précèdent les 6 lignes Zone1-6 du bloc T2 dans le document.
+//
+// Particularité constatée à l'extraction PDF réelle (pdf.js) : la dernière valeur (kWh TTC)
+// d'une ligne se retrouve parfois sur sa PROPRE ligne, juste AVANT le label "Zone N" suivant,
+// au lieu d'apparaître après le label de sa propre zone (léger décalage vertical de rendu sur
+// cette cellule précise). Ex. réel : "...0,1649\n0,1682\nZone 6 9,40 12,70 0,1238" — le 0,1682
+// appartient à Zone 6 mais apparaît avant son label. On gère ça par report (carry-over) :
+// si une fenêtre de zone contient 5 nombres, le 5e est en fait la valeur de la zone SUIVANTE ;
+// si une fenêtre n'en contient que 3, on complète avec la valeur reportée par la zone précédente.
+function parseTotalGas(rawText) {
+  // NB: on ne dépend pas de la présence littérale de "TotalEnergies" (parfois uniquement dans un
+  // logo/image non extractible, ou sur une page qui pourrait manquer) : la combinaison PRVG + T1/T2
+  // est spécifique à la page de grille gaz elle-même et donc plus fiable.
+  if (!/Prix\s*Rep[eè]re\s*de\s*Vente\s*de\s*Gaz|PRVG/i.test(rawText)) return null;
+  if (!/\bT1\b/.test(rawText) || !/\bT2\b/.test(rawText)) return null;
+  var norm = despacePasteDecimals(rawText.replace(/,/g, '.'));
+  var reZoneG = /Zone\s*(\d)\b/gi;
+  var positions = [];
+  var mg;
+  while ((mg = reZoneG.exec(norm)) !== null) {
+    var zn0 = parseInt(mg[1]);
+    if (zn0 < 1 || zn0 > 6) continue;
+    positions.push({ zone: zn0, start: mg.index, afterIdx: mg.index + mg[0].length });
+  }
+  if (!positions.length) return null; // vraiment aucune ligne de zone trouvée
+  var matches = [];
+  var carry = null; // valeur "fuyante" détectée en trop dans la fenêtre précédente
+  for (var i = 0; i < positions.length; i++) {
+    var chunkEnd = (i + 1 < positions.length) ? positions[i + 1].start : Math.min(norm.length, positions[i].afterIdx + 300);
+    var chunk = norm.substring(positions[i].afterIdx, chunkEnd);
+    var allNums = (chunk.match(/[\d]+\.[\d]+/g) || []).map(parseFloat);
+    var rowNums = null;
+    if (allNums.length >= 5) {
+      rowNums = allNums.slice(0, 4);
+      carry = allNums[4]; // reportée sur la zone suivante
+    } else if (allNums.length === 4) {
+      rowNums = allNums;
+      carry = null;
+    } else if (allNums.length === 3 && carry !== null) {
+      rowNums = allNums.concat([carry]); // on complète avec la valeur reportée par la zone précédente
+      carry = null;
+    } else {
+      carry = null;
+      continue; // impossible à reconstruire de façon fiable pour cette zone
+    }
+    // rowNums: [abo_HT, abo_TTC, kwh_HT, kwh_TTC]
+    matches.push({ zone: positions[i].zone, abo: rowNums[1], kwh: rowNums[3] });
+  }
+  // Une fois qu'on a confirmé (via PRVG + T1/T2) qu'il s'agit bien d'une grille TotalEnergies,
+  // on ne renvoie plus null même si l'extraction est incomplète (pour éviter tout repli silencieux
+  // vers un parseur générique d'un autre fournisseur plus bas dans le code) : on travaille avec
+  // ce qui a été trouvé, quitte à ce que certaines zones retombent sur la Zone 1 par défaut.
+  if (!matches.length) return null;
+  // Découpe en blocs consécutifs : un nouveau bloc démarre dès que le n° de zone ne progresse plus.
+  var groups = [];
+  var current = [];
+  for (var j = 0; j < matches.length; j++) {
+    if (current.length && matches[j].zone <= current[current.length - 1].zone) {
+      groups.push(current);
+      current = [];
+    }
+    current.push(matches[j]);
+  }
+  if (current.length) groups.push(current);
+  var t1 = groups[0];
+  var t2 = groups[1] || t1; // repli sur T1 si le bloc T2 (chauffage) est absent
+  function findZone(group, zn) {
+    for (var k = 0; k < group.length; k++) { if (group[k].zone === zn) return group[k]; }
+    return group[0];
+  }
+  var result = { g_abo_b0: t1[0].abo, g_abo_b1: t2[0].abo };
+  for (var zn = 1; zn <= 6; zn++) {
+    var rowB0 = findZone(t1, zn);
+    var rowB1 = findZone(t2, zn);
+    result['g_abo_b0_z' + zn] = rowB0.abo;
+    result['g_kwh_b0_z' + zn] = rowB0.kwh;
+    result['g_abo_b1_z' + zn] = rowB1.abo;
+    result['g_kwh_b1_z' + zn] = rowB1.kwh;
+  }
+  return result;
+}
+
+// ── ENGIE (gaz): grille décomposée Fourniture + Acheminement + Obligations ──
+// B0 = tranche "jusqu'à 3999 kWh" (cuisson/eau chaude), B1 = tranche "de 4000 à 29999 kWh" (chauffage).
+// Fourniture et Acheminement ne dépendent pas de la zone ; seules les Obligations varient selon
+// le "Groupe de communes" (Gr. A à Gr. H). Zone1→6 de l'outil = Groupe A→F.
+// La table "Evolution Maximale Obligations" qui suit reprend les mêmes lettres A→H : c'est un
+// plafond futur, pas le tarif actuel, donc on ne garde que le premier cycle A→H rencontré.
+function parseEngieGas(rawText) {
+  if (!/ENGIE/i.test(rawText)) return null;
+  if (!/Obligations/i.test(rawText) || !/Acheminement/i.test(rawText) || !/Fourniture/i.test(rawText)) return null;
+  if (!/Gr\.?\s*A\b/i.test(rawText)) return null; // confirme la grille "Groupe de communes A à H", propre à Engie
+  // NB: "Fourniture" apparaît aussi dans le texte d'intro générique ("cette offre de fourniture"),
+  // bien avant la vraie grille tarifaire (page 4) — on isole d'abord la section "Grille tarifaire"
+  // pour ne chercher les en-têtes Fourniture/Acheminement/Obligations que dans le vrai tableau.
+  var grilleIdx = rawText.search(/Grille\s*tarifaire/i);
+  var gridText = grilleIdx >= 0 ? rawText.substring(grilleIdx) : rawText;
+  var norm = despacePasteDecimals(gridText.replace(/,/g, '.'));
+
+  // Extrait, pour une section (Fourniture ou Acheminement), les valeurs TTC (abo, kWh) des
+  // tranches "jusqu'à 3999 kWh" (band1) et "de 4000 à 29999 kWh" (band2). Les 4 valeurs d'une
+  // bande peuvent apparaître dans un ordre différent selon le rendu PDF (ex: kwh avant abo) ;
+  // on les distingue donc par grandeur (abo en €/an >= 1, prix kWh en €/kWh < 1) plutôt que
+  // par position fixe.
+  function pickAbo(nums) { var v = nums.filter(function(x){ return x >= 1; }); return v.length ? Math.max.apply(null, v) : null; }
+  function pickKwh(nums) { var v = nums.filter(function(x){ return x < 1; }); return v.length ? Math.max.apply(null, v) : null; }
+  function extractSection(sectionText) {
+    var m1 = /jusqu.{0,3}3\s*999/i.exec(sectionText);
+    var m2 = /de\s*4\s*000/i.exec(sectionText);
+    if (!m1 || !m2) return null;
+    var band1Nums = (sectionText.substring(m1.index, m2.index).match(/[\d]+\.[\d]+/g) || []).map(parseFloat);
+    var band2Nums = (sectionText.substring(m2.index).match(/[\d]+\.[\d]+/g) || []).slice(0, 4).map(parseFloat);
+    if (band1Nums.length < 4 || band2Nums.length < 4) return null;
+    var abo1 = pickAbo(band1Nums), kwh1 = pickKwh(band1Nums);
+    var abo2 = pickAbo(band2Nums), kwh2 = pickKwh(band2Nums);
+    if (abo1 === null || kwh1 === null || abo2 === null || kwh2 === null) return null;
+    return { abo1: abo1, kwh1: kwh1, abo2: abo2, kwh2: kwh2 };
+  }
+
+  var fournIdx = norm.search(/Fourniture/i);
+  var achemIdx = norm.search(/Acheminement/i);
+  var obligIdx = norm.search(/Obligations/i);
+  if (fournIdx < 0 || achemIdx < 0 || obligIdx < 0) return null;
+  var fourniture = extractSection(norm.substring(fournIdx, achemIdx));
+  var acheminement = extractSection(norm.substring(achemIdx, obligIdx));
+  if (!fourniture || !acheminement) return null;
+
+  // Table Obligations : on ignore la position des labels "Gr. X" (ils flottent de façon
+  // imprévisible avant ou après leurs propres valeurs selon le rendu PDF) et on se base
+  // uniquement sur l'ordre séquentiel des nombres : la table liste toujours les 8 groupes
+  // dans l'ordre A→H, à raison de 6 valeurs par groupe (HT/TTC pour les 3 tranches de conso).
+  // On s'arrête avant "Evolution Maximale Obligations" (un plafond futur, pas le tarif actuel).
+  var evolIdx = norm.search(/Evolution\s*Maximale/i);
+  var obligSection = norm.substring(obligIdx, evolIdx >= 0 ? evolIdx : norm.length);
+  var obligNums = (obligSection.match(/[\d]+\.[\d]+/g) || []).map(parseFloat);
+  if (obligNums.length < 48) return null; // 8 groupes x 6 valeurs attendues
+  var obligRows = [];
+  for (var g = 0; g < 8; g++) {
+    var row = obligNums.slice(g * 6, g * 6 + 6);
+    obligRows.push({ band1TTC: row[1], band2TTC: row[3] });
+  }
+
+  var result = {
+    g_abo_b0: (fourniture.abo1 + acheminement.abo1) / 12,
+    g_abo_b1: (fourniture.abo2 + acheminement.abo2) / 12
+  };
+  for (var zn = 1; zn <= 6; zn++) {
+    var g = obligRows[zn - 1]; // Zone1→6 = Groupe A→F
+    result['g_abo_b0_z' + zn] = result.g_abo_b0;
+    result['g_kwh_b0_z' + zn] = fourniture.kwh1 + acheminement.kwh1 + g.band1TTC;
+    result['g_abo_b1_z' + zn] = result.g_abo_b1;
+    result['g_kwh_b1_z' + zn] = fourniture.kwh2 + acheminement.kwh2 + g.band2TTC;
+  }
+  return result;
+}
+
+// Arrondi uniforme appliqué à tous les parseurs gaz : 2 décimales pour les abonnements,
+// 4 décimales pour les prix au kWh (utile notamment après une addition Fourniture+Acheminement+
+// Obligations, qui peut introduire de petites erreurs de virgule flottante).
+function roundGasResult(result) {
+  if (!result) return result;
+  Object.keys(result).forEach(function(k) {
+    if (typeof result[k] !== 'number') return;
+    if (k.indexOf('g_abo_') === 0) result[k] = +result[k].toFixed(2);
+    else if (k.indexOf('g_kwh_') === 0) result[k] = +result[k].toFixed(4);
+  });
+  return result;
+}
+
+// ── PLENITUDE (gaz): grille "Plenifix" — prix fixe national, sans zonage ──
+// Format simple : une seule ligne "< 4 MWh  abo_HT abo_TTC kwh_HT kwh_TTC" (B0)
+// et une ligne "≥ 4 MWh  abo_HT abo_TTC kwh_HT kwh_TTC" (B1). Comme Alterna, il n'y a
+// pas de zone tarifaire : on duplique la même valeur sur les 6 zones de l'outil.
+function parsePlenitudeGas(rawText) {
+  if (!/Plenitude|Plenifix/i.test(rawText)) return null;
+  var norm = despacePasteDecimals(rawText.replace(/,/g, '.'));
+  var reB0 = /<\s*4\s*MWh\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i;
+  var reB1 = /[≥>]=?\s*4\s*MWh\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i;
+  var m0 = reB0.exec(norm);
+  var m1 = reB1.exec(norm);
+  if (!m0 || !m1) return null;
+  // [abo_HT_an, abo_TTC_an, kwh_HT, kwh_TTC]
+  var aboB0 = parseFloat(m0[2]) / 12;
+  var kwhB0 = parseFloat(m0[4]);
+  var aboB1 = parseFloat(m1[2]) / 12;
+  var kwhB1 = parseFloat(m1[4]);
+  if (isNaN(aboB0) || isNaN(kwhB0) || isNaN(aboB1) || isNaN(kwhB1)) return null;
+  var result = { g_abo_b0: aboB0, g_abo_b1: aboB1 };
+  for (var zn = 1; zn <= 6; zn++) {
+    result['g_abo_b0_z' + zn] = aboB0;
+    result['g_kwh_b0_z' + zn] = kwhB0;
+    result['g_abo_b1_z' + zn] = aboB1;
+    result['g_kwh_b1_z' + zn] = kwhB1;
+  }
+  return result;
+}
+
+// ── OHM ÉNERGIE (gaz): grille "Extra Eco Gaz" — Plage de Base / Plage B0 / Plage B1-B2i ──
+// Prix du kWh donnés en centimes d'euro. Base et B0 ont des valeurs identiques -> B0 de l'outil.
+// Plage B1/B2i -> B1 de l'outil. La "Zone ELD" (Bordeaux/Strasbourg/Colmar) n'est pas utilisée
+// (l'outil ne gère que les Zones 1 à 6). On utilise un motif à 2 décimales strictes (format
+// monétaire) plutôt que despacePasteDecimals, car "15,61" et "23,50" peuvent se retrouver collés
+// sans espace ("15,6123,50") de façon ambiguë pour un simple découpage générique.
+function parseOhmGas(rawText) {
+  if (!/Ohm\s*[EÉ]nergie/i.test(rawText)) return null;
+  if (!/Plage\s*B0/i.test(rawText) || !/Plage\s*B1/i.test(rawText)) return null;
+  // "Zones 1 à 6" est parfois suivi immédiatement, sans espace, du premier nombre de la ligne
+  // abonnement (ex: "à 67,99" pour "à 6" + "7,99") : on force un espace après le "6" isolé.
+  var fixed = rawText.replace(/à\s*6(\d)/i, 'à 6 $1');
+  var norm = fixed.replace(/,/g, '.');
+  var reNum = /\d{1,3}\.\d{2}/g;
+
+  var aboIdx = norm.search(/Zones\s*1\s*à\s*6/i);
+  if (aboIdx < 0) return null;
+  var zone1Idx = norm.indexOf('Zone 1', aboIdx);
+  var aboWindow = norm.substring(aboIdx, zone1Idx >= 0 ? zone1Idx : Math.min(norm.length, aboIdx + 200));
+  var aboNums = (aboWindow.match(reNum) || []).map(parseFloat);
+  if (aboNums.length < 6) return null;
+  var aboB0 = aboNums[1]; // TTC, identique pour Base et B0
+  var aboB1 = aboNums[5]; // TTC B1/B2i
+
+  var reZone = /Zone\s*(\d)\b/gi;
+  var positions = [];
+  var mz;
+  while ((mz = reZone.exec(norm)) !== null) {
+    var zn0 = parseInt(mz[1]);
+    if (zn0 < 1 || zn0 > 6) continue;
+    positions.push({ zone: zn0, start: mz.index, afterIdx: mz.index + mz[0].length });
+  }
+  if (positions.length < 6) return null;
+
+  var result = { g_abo_b0: aboB0, g_abo_b1: aboB1 };
+  for (var zn = 1; zn <= 6; zn++) {
+    result['g_abo_b0_z' + zn] = aboB0;
+    result['g_abo_b1_z' + zn] = aboB1;
+  }
+  for (var i = 0; i < positions.length; i++) {
+    var chunkEnd = (i + 1 < positions.length) ? positions[i + 1].start : Math.min(norm.length, positions[i].afterIdx + 100);
+    var chunk = norm.substring(positions[i].afterIdx, chunkEnd);
+    var nums = (chunk.match(reNum) || []).slice(0, 6).map(parseFloat);
+    if (nums.length < 6) continue;
+    result['g_kwh_b0_z' + positions[i].zone] = nums[1] / 100; // TTC en cts -> €/kWh
+    result['g_kwh_b1_z' + positions[i].zone] = nums[5] / 100;
+  }
+  return result;
+}
+
+// ── OCTOPUS ENERGY (gaz): grille "Gaz Fixe" — Cuisson/eau chaude (B0) + Chauffage (B1) x Zone 1-6 ──
+function parseOctopusGas(rawText) {
+  if (!/Octopus/i.test(rawText)) return null;
+  if (!/Cuisson/i.test(rawText) || !/Chauffage/i.test(rawText)) return null;
+  var norm = despacePasteDecimals(rawText.replace(/,/g, '.'));
+
+  var aboIdx = norm.search(/Abonnement\s*\(/i);
+  var zone1Idx = norm.search(/Zone\s*1\b/i);
+  if (aboIdx < 0 || zone1Idx < 0 || zone1Idx <= aboIdx) return null;
+  var aboNums = (norm.substring(aboIdx, zone1Idx).match(/[\d]+\.[\d]+/g) || []).map(parseFloat);
+  if (aboNums.length < 4) return null;
+  var aboB0 = aboNums[1]; // TTC
+  var aboB1 = aboNums[3]; // TTC
+
+  var reZone = /Zone\s*(\d)\b/gi;
+  var positions = [];
+  var mz;
+  while ((mz = reZone.exec(norm)) !== null) {
+    var zn0 = parseInt(mz[1]);
+    if (zn0 < 1 || zn0 > 6) continue;
+    positions.push({ zone: zn0, start: mz.index, afterIdx: mz.index + mz[0].length });
+  }
+  if (positions.length < 6) return null;
+
+  var result = { g_abo_b0: aboB0, g_abo_b1: aboB1 };
+  for (var zn = 1; zn <= 6; zn++) {
+    result['g_abo_b0_z' + zn] = aboB0;
+    result['g_abo_b1_z' + zn] = aboB1;
+  }
+  for (var i = 0; i < positions.length; i++) {
+    var chunkEnd = (i + 1 < positions.length) ? positions[i + 1].start : Math.min(norm.length, positions[i].afterIdx + 100);
+    var chunk = norm.substring(positions[i].afterIdx, chunkEnd);
+    var nums = (chunk.match(/[\d]+\.[\d]+/g) || []).slice(0, 4).map(parseFloat);
+    if (nums.length < 4) continue;
+    result['g_kwh_b0_z' + positions[i].zone] = nums[1]; // TTC B0 (déjà en €/kWh)
+    result['g_kwh_b1_z' + positions[i].zone] = nums[3]; // TTC B1
+  }
+  return result;
+}
+
+// ── HAPP-E by ENGIE (gaz): grille "Niveau 1-6" — B0 fixe (0-3999 kWh) + B1 par niveau (4000-29999 kWh) ──
+// La tranche "30000-300000 kWh" répète les mêmes valeurs de kWh par niveau (ignorée, non utilisée).
+// Niveau 1→6 de la grille happ-e = Zone 1→6 de l'outil.
+function parseHappeGas(rawText) {
+  if (!/happ.?e/i.test(rawText)) return null;
+  if (!/Niveau/i.test(rawText)) return null;
+  var grilleIdx = rawText.search(/Grille\s*tarifaire/i);
+  var gridText = grilleIdx >= 0 ? rawText.substring(grilleIdx) : rawText;
+  var norm = despacePasteDecimals(gridText.replace(/,/g, '.'));
+
+  // B0 : ligne "0 - 3999 kWh  ...  abo_HT abo_TTC kwh_HT kwh_TTC"
+  var b0Idx = norm.search(/0\s*-\s*3999\s*kWh/i);
+  if (b0Idx < 0) return null;
+  var b0Nums = (norm.substring(b0Idx).match(/[\d]+\.[\d]+/g) || []).slice(0, 4).map(parseFloat);
+  if (b0Nums.length < 4) return null;
+  var aboB0 = b0Nums[1] / 12;
+  var kwhB0 = b0Nums[3];
+
+  // B1 : abo constant "4000 – 29999 kWh ... abo_HT abo_TTC", kWh par Niveau 1-6
+  var b1AboIdx = norm.search(/4000\s*[-–]\s*29999\s*kWh/i);
+  if (b1AboIdx < 0) return null;
+  var b1AboNums = (norm.substring(b1AboIdx).match(/[\d]+\.[\d]+/g) || []).slice(0, 2).map(parseFloat);
+  if (b1AboNums.length < 2) return null;
+  var aboB1 = b1AboNums[1] / 12;
+
+  // Niveau 1-6 : le label peut apparaître avant OU après ses propres valeurs (fuite déjà
+  // rencontrée chez Engie/Total) ; comme la grille liste Niveau 1-6 deux fois (une fois par
+  // tranche de conso, avec des valeurs identiques), on garde la 1ère occurrence complète trouvée.
+  var reNiveau = /Niveau\s*(\d)\b/gi;
+  var positions = [];
+  var mn;
+  while ((mn = reNiveau.exec(norm)) !== null) {
+    var nv = parseInt(mn[1]);
+    if (nv < 1 || nv > 6) continue;
+    positions.push({ niveau: nv, start: mn.index, afterIdx: mn.index + mn[0].length });
+  }
+  var kwhB1ByNiveau = {};
+  for (var i = 0; i < positions.length; i++) {
+    if (kwhB1ByNiveau[positions[i].niveau]) continue;
+    var chunkEnd = (i + 1 < positions.length) ? positions[i + 1].start : Math.min(norm.length, positions[i].afterIdx + 100);
+    var chunk = norm.substring(positions[i].afterIdx, chunkEnd);
+    var nums = (chunk.match(/[\d]+\.[\d]+/g) || []).slice(0, 2).map(parseFloat);
+    if (nums.length >= 2) kwhB1ByNiveau[positions[i].niveau] = nums[1]; // TTC
+  }
+  if (Object.keys(kwhB1ByNiveau).length < 6) return null;
+
+  var result = { g_abo_b0: aboB0, g_abo_b1: aboB1 };
+  for (var zn = 1; zn <= 6; zn++) {
+    result['g_abo_b0_z' + zn] = aboB0;
+    result['g_kwh_b0_z' + zn] = kwhB0;
+    result['g_abo_b1_z' + zn] = aboB1;
+    result['g_kwh_b1_z' + zn] = kwhB1ByNiveau[zn];
+  }
+  return result;
+}
+
 function parseGasTariffs(rawText) {
+  var alterna = parseAlternaGas(rawText);
+  if (alterna) return roundGasResult(alterna);
+  var edf = parseEDFGas(rawText);
+  if (edf) return roundGasResult(edf);
+  var total = parseTotalGas(rawText);
+  if (total) return roundGasResult(total);
+  var engie = parseEngieGas(rawText);
+  if (engie) return roundGasResult(engie);
+  var plenitude = parsePlenitudeGas(rawText);
+  if (plenitude) return roundGasResult(plenitude);
+  var ohm = parseOhmGas(rawText);
+  if (ohm) return roundGasResult(ohm);
+  var octopus = parseOctopusGas(rawText);
+  if (octopus) return roundGasResult(octopus);
+  var happe = parseHappeGas(rawText);
+  if (happe) return roundGasResult(happe);
+
   var d = {};
   function pf(s) { var v = parseFloat(String(s).replace(/,/g,'.')); return isNaN(v) ? null : v; }
   var norm = rawText.replace(/,/g,'.').replace(/\r/g,'');
@@ -2549,9 +3003,15 @@ async function calcRefPDF(energy) {
       REF.elec.pdfName=file.name; pendingRefFile.elec=null;
     } else {
       if(extracted.g_abo_b0)    REF.gas.abo_b0=extracted.g_abo_b0;
+      if(extracted.g_abo_b0_z1||extracted.g_abo_b0) REF.gas.abo_b0_z1=extracted.g_abo_b0_z1||extracted.g_abo_b0;
+      if(extracted.g_abo_b0_z2||extracted.g_abo_b0) REF.gas.abo_b0_z2=extracted.g_abo_b0_z2||extracted.g_abo_b0;
       if(extracted.g_kwh_b0_z1) REF.gas.kwh_b0_z1=extracted.g_kwh_b0_z1;
+      if(extracted.g_kwh_b0_z2) REF.gas.kwh_b0_z2=extracted.g_kwh_b0_z2;
       if(extracted.g_abo_b1)    REF.gas.abo_b1=extracted.g_abo_b1;
+      if(extracted.g_abo_b1_z1||extracted.g_abo_b1) REF.gas.abo_b1_z1=extracted.g_abo_b1_z1||extracted.g_abo_b1;
+      if(extracted.g_abo_b1_z2||extracted.g_abo_b1) REF.gas.abo_b1_z2=extracted.g_abo_b1_z2||extracted.g_abo_b1;
       if(extracted.g_kwh_b1_z1) REF.gas.kwh_b1_z1=extracted.g_kwh_b1_z1;
+      if(extracted.g_kwh_b1_z2) REF.gas.kwh_b1_z2=extracted.g_kwh_b1_z2;
       REF.gas.pdfName=file.name; pendingRefFile.gas=null;
     }
     showToast(count>0?'✓ '+count+' valeurs extraites':'⚠️ Aucune valeur détectée', count>0?'success':'error');
@@ -2713,22 +3173,26 @@ function computeElecRankings() {
     var base = {name:s.name, offer:d.offer||'—', isSelf:false};
     var c6b = cost6b(d), c9b = cost9b(d), c6h = cost6h(d), c9h = cost9h(d);
     if (c6b!==null) res.e6b.push(Object.assign({},base,{
+      annuel:c6b,
       ecart_abo:(d.abo_6_base||0)-r.abo_6_base,
       ecart_kwh:(d.kwh_6_base||0)-r.kwh_6_base,
       ecart: vCosts.e6b!==null ? c6b-vCosts.e6b : null
     }));
     if (c9b!==null) res.e9b.push(Object.assign({},base,{
+      annuel:c9b,
       ecart_abo:(d.abo_9_base||0)-r.abo_9_base,
       ecart_kwh:(d.kwh_9_base||0)-r.kwh_9_base,
       ecart: vCosts.e9b!==null ? c9b-vCosts.e9b : null
     }));
     if (c6h!==null) res.e6h.push(Object.assign({},base,{
+      annuel:c6h,
       ecart_abo:(d.abo_6_hc||0)-r.abo_6_hc,
       ecart_hp:(d.hp_6||0)-r.hp_6,
       ecart_hc:(d.hc_6||0)-r.hc_6,
       ecart: vCosts.e6h!==null ? c6h-vCosts.e6h : null
     }));
     if (c9h!==null) res.e9h.push(Object.assign({},base,{
+      annuel:c9h,
       ecart_abo:(d.abo_9_hc||0)-r.abo_9_hc,
       ecart_hp:(d.hp_9||0)-r.hp_9,
       ecart_hc:(d.hc_9||0)-r.hc_9,
@@ -2737,31 +3201,37 @@ function computeElecRankings() {
     var c12b=cost12b(d), c15b=cost15b(d), c18b=cost18b(d);
     var c12h=cost12h(d), c15h=cost15h(d), c18h=cost18h(d);
     if (c12b!==null) res.e12b.push(Object.assign({},base,{
+      annuel:c12b,
       ecart_abo:(d.abo_12_base||0)-(r.abo_12_base||0),
       ecart_kwh:(d.kwh_12_base||0)-(r.kwh_12_base||0),
       ecart: vCosts.e12b!==null ? c12b-vCosts.e12b : null
     }));
     if (c15b!==null) res.e15b.push(Object.assign({},base,{
+      annuel:c15b,
       ecart_abo:(d.abo_15_base||0)-(r.abo_15_base||0),
       ecart_kwh:(d.kwh_15_base||0)-(r.kwh_15_base||0),
       ecart: vCosts.e15b!==null ? c15b-vCosts.e15b : null
     }));
     if (c18b!==null) res.e18b.push(Object.assign({},base,{
+      annuel:c18b,
       ecart_abo:(d.abo_18_base||0)-(r.abo_18_base||0),
       ecart_kwh:(d.kwh_18_base||0)-(r.kwh_18_base||0),
       ecart: vCosts.e18b!==null ? c18b-vCosts.e18b : null
     }));
     if (c12h!==null) res.e12h.push(Object.assign({},base,{
+      annuel:c12h,
       ecart_abo:(d.abo_12_hc||0)-(r.abo_12_hc||0),
       ecart_hp:(d.hp_12||0)-(r.hp_12||0), ecart_hc:(d.hc_12||0)-(r.hc_12||0),
       ecart: vCosts.e12h!==null ? c12h-vCosts.e12h : null
     }));
     if (c15h!==null) res.e15h.push(Object.assign({},base,{
+      annuel:c15h,
       ecart_abo:(d.abo_15_hc||0)-(r.abo_15_hc||0),
       ecart_hp:(d.hp_15||0)-(r.hp_15||0), ecart_hc:(d.hc_15||0)-(r.hc_15||0),
       ecart: vCosts.e15h!==null ? c15h-vCosts.e15h : null
     }));
     if (c18h!==null) res.e18h.push(Object.assign({},base,{
+      annuel:c18h,
       ecart_abo:(d.abo_18_hc||0)-(r.abo_18_hc||0),
       ecart_hp:(d.hp_18||0)-(r.hp_18||0), ecart_hc:(d.hc_18||0)-(r.hc_18||0),
       ecart: vCosts.e18h!==null ? c18h-vCosts.e18h : null
@@ -2782,42 +3252,54 @@ function computeGasRankings() {
   var sups = getActiveSuppliers();
   var SELF = 'Alterna Energie';
   function gasCost(abo, kwh, conso) { return (abo&&kwh) ? abo*12 + kwh*conso : null; }
-  var vB0z1 = gasCost(r.abo_b0, r.kwh_b0_z1, CONSOS.gas_b0);
-  var vB0z2 = gasCost(r.abo_b0, r.kwh_b0_z2, CONSOS.gas_b0);
-  var vB1z1 = gasCost(r.abo_b1, r.kwh_b1_z1, CONSOS.gas_b1);
-  var vB1z2 = gasCost(r.abo_b1, r.kwh_b1_z2, CONSOS.gas_b1);
+  var rAboB0z1 = r.abo_b0_z1!=null ? r.abo_b0_z1 : r.abo_b0;
+  var rAboB0z2 = r.abo_b0_z2!=null ? r.abo_b0_z2 : r.abo_b0;
+  var rAboB1z1 = r.abo_b1_z1!=null ? r.abo_b1_z1 : r.abo_b1;
+  var rAboB1z2 = r.abo_b1_z2!=null ? r.abo_b1_z2 : r.abo_b1;
+  var vB0z1 = gasCost(rAboB0z1, r.kwh_b0_z1, CONSOS.gas_b0);
+  var vB0z2 = gasCost(rAboB0z2, r.kwh_b0_z2, CONSOS.gas_b0);
+  var vB1z1 = gasCost(rAboB1z1, r.kwh_b1_z1, CONSOS.gas_b1);
+  var vB1z2 = gasCost(rAboB1z2, r.kwh_b1_z2, CONSOS.gas_b1);
   var res = {b0z1:[], b0z2:[], b1z1:[], b1z2:[]};
   var offerName = r.offerName || '';
-  res.b0z1.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b0, kwh:r.kwh_b0_z1, annuel:vB0z1, ecart:0});
-  res.b0z2.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b0, kwh:r.kwh_b0_z2, annuel:vB0z2, ecart:0});
-  res.b1z1.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b1, kwh:r.kwh_b1_z1, annuel:vB1z1, ecart:0});
-  res.b1z2.push({name:SELF, offer:offerName, isSelf:true, abo:r.abo_b1, kwh:r.kwh_b1_z2, annuel:vB1z2, ecart:0});
+  res.b0z1.push({name:SELF, offer:offerName, isSelf:true, abo:rAboB0z1, kwh:r.kwh_b0_z1, annuel:vB0z1, ecart:0});
+  res.b0z2.push({name:SELF, offer:offerName, isSelf:true, abo:rAboB0z2, kwh:r.kwh_b0_z2, annuel:vB0z2, ecart:0});
+  res.b1z1.push({name:SELF, offer:offerName, isSelf:true, abo:rAboB1z1, kwh:r.kwh_b1_z1, annuel:vB1z1, ecart:0});
+  res.b1z2.push({name:SELF, offer:offerName, isSelf:true, abo:rAboB1z2, kwh:r.kwh_b1_z2, annuel:vB1z2, ecart:0});
   sups.forEach(function(s) {
     if (s.name===SELF) return;
     if (!s.gas||s.gas.status!=='done') return;
     var d = s.gas.data;
-    var cb0z1 = gasCost(d.g_abo_b0, d.g_kwh_b0_z1, CONSOS.gas_b0);
-    var cb0z2 = gasCost(d.g_abo_b0, d.g_kwh_b0_z2, CONSOS.gas_b0);
-    var cb1z1 = gasCost(d.g_abo_b1, d.g_kwh_b1_z1, CONSOS.gas_b1);
-    var cb1z2 = gasCost(d.g_abo_b1, d.g_kwh_b1_z2, CONSOS.gas_b1);
+    var dAboB0z1 = d.g_abo_b0_z1!=null ? d.g_abo_b0_z1 : d.g_abo_b0;
+    var dAboB0z2 = d.g_abo_b0_z2!=null ? d.g_abo_b0_z2 : d.g_abo_b0;
+    var dAboB1z1 = d.g_abo_b1_z1!=null ? d.g_abo_b1_z1 : d.g_abo_b1;
+    var dAboB1z2 = d.g_abo_b1_z2!=null ? d.g_abo_b1_z2 : d.g_abo_b1;
+    var cb0z1 = gasCost(dAboB0z1, d.g_kwh_b0_z1, CONSOS.gas_b0);
+    var cb0z2 = gasCost(dAboB0z2, d.g_kwh_b0_z2, CONSOS.gas_b0);
+    var cb1z1 = gasCost(dAboB1z1, d.g_kwh_b1_z1, CONSOS.gas_b1);
+    var cb1z2 = gasCost(dAboB1z2, d.g_kwh_b1_z2, CONSOS.gas_b1);
     var base = {name:s.name, offer:d.offer||'—', isSelf:false};
     if (cb0z1!==null) res.b0z1.push(Object.assign({},base,{
-      ecart_abo:(d.g_abo_b0||0)-r.abo_b0,
+      abo:dAboB0z1, kwh:d.g_kwh_b0_z1, annuel:cb0z1,
+      ecart_abo:(dAboB0z1||0)-(rAboB0z1||0),
       ecart_kwh:(d.g_kwh_b0_z1||0)-(r.kwh_b0_z1||0),
       ecart: vB0z1!==null ? cb0z1-vB0z1 : null
     }));
     if (cb0z2!==null) res.b0z2.push(Object.assign({},base,{
-      ecart_abo:(d.g_abo_b0||0)-r.abo_b0,
+      abo:dAboB0z2, kwh:d.g_kwh_b0_z2, annuel:cb0z2,
+      ecart_abo:(dAboB0z2||0)-(rAboB0z2||0),
       ecart_kwh:(d.g_kwh_b0_z2||0)-(r.kwh_b0_z2||0),
       ecart: vB0z2!==null ? cb0z2-vB0z2 : null
     }));
     if (cb1z1!==null) res.b1z1.push(Object.assign({},base,{
-      ecart_abo:(d.g_abo_b1||0)-r.abo_b1,
+      abo:dAboB1z1, kwh:d.g_kwh_b1_z1, annuel:cb1z1,
+      ecart_abo:(dAboB1z1||0)-(rAboB1z1||0),
       ecart_kwh:(d.g_kwh_b1_z1||0)-(r.kwh_b1_z1||0),
       ecart: vB1z1!==null ? cb1z1-vB1z1 : null
     }));
     if (cb1z2!==null) res.b1z2.push(Object.assign({},base,{
-      ecart_abo:(d.g_abo_b1||0)-r.abo_b1,
+      abo:dAboB1z2, kwh:d.g_kwh_b1_z2, annuel:cb1z2,
+      ecart_abo:(dAboB1z2||0)-(rAboB1z2||0),
       ecart_kwh:(d.g_kwh_b1_z2||0)-(r.kwh_b1_z2||0),
       ecart: vB1z2!==null ? cb1z2-vB1z2 : null
     }));
@@ -2829,25 +3311,29 @@ function computeGasRankings() {
 }
 
 // ── RANK TABLE ──
-function rankTable(data, cols) {
+function rankTable(data, cols, refSupplier) {
+  refSupplier = refSupplier || {name:'EDF', label:'TRV'};
   if (!data.length) return '<p style="font-size:12px;color:var(--text3);padding:8px 0;">Aucune donnée</p>';
   var isHC = cols.includes('HP (€/kWh)');
-  var headers = cols.map(function(c,i){
+  var headerCells = cols.map(function(c,i){
     if(i<=2) return '<th>'+c+'</th>';
     var ecartLabel = c.replace('kWh (€/kWh)','Écart kWh').replace('HP (€/kWh)','Écart HP').replace('HC (€/kWh)','Écart HC').replace('Coût annuel €','Écart annuel €');
-    return '<th><span style="color:var(--text3);font-size:9px;display:block;font-weight:400;">★ '+c+'</span><span style="font-size:9px;display:block;font-weight:400;color:var(--text3)"># '+ecartLabel+' / %TRV</span></th>';
-  }).join('');
+    return '<th><span style="color:var(--text3);font-size:9px;display:block;font-weight:400;">★ '+c+'</span><span style="font-size:9px;display:block;font-weight:400;color:var(--text3)"># '+ecartLabel+'</span></th>';
+  });
+  // Colonne dédiée "% vs TRV/PRVG", insérée juste avant la dernière colonne (Coût annuel €).
+  headerCells.splice(headerCells.length - 1, 0, '<th>% vs '+refSupplier.label+'</th>');
+  var headers = headerCells.join('');
 
-  // Trouver le coût annuel TRV (EDF) pour calcul % 
-  var trvRow = data.find(function(r){return r.name==='EDF' && !r.isSelf;});
+  // Trouver le coût annuel de la référence tarifaire réglementée (EDF/TRV en élec, Engie/PRVG en gaz) pour calcul %
+  var trvRow = data.find(function(r){return r.name===refSupplier.name && !r.isSelf;});
   var trvAnnuel = trvRow ? trvRow.annuel : null;
 
-  // Calculer le vrai rang de chaque ligne (TRV et Alterna inclus dans le rang)
+  // Calculer le vrai rang de chaque ligne (référence et Alterna inclus dans le rang)
   var sorted = data.slice().sort(function(a,b){return (a.annuel||0)-(b.annuel||0);});
 
   var rows = data.map(function(row, i) {
     var isSelf = row.isSelf;
-    var isTRV = row.name === 'EDF' && !isSelf;
+    var isTRV = row.name === refSupplier.name && !isSelf;
     var realRank = sorted.indexOf(row) + 1;
 
     // Styles
@@ -2858,7 +3344,7 @@ function rankTable(data, cols) {
       rankLabel = '#'+realRank;
     } else if(isTRV){
       rowStyle = 'background:#e8f0ff;';
-      rankLabel = 'TRV';
+      rankLabel = refSupplier.label;
     } else {
       rankLabel = '#'+realRank;
     }
@@ -2867,11 +3353,16 @@ function rankTable(data, cols) {
     var nameCls = isSelf ? 'supplier-cell self' : (isTRV ? 'supplier-cell' : 'supplier-cell');
 
     var cells = '<td class="'+rankCls+'" style="'+(isTRV?'color:#2255cc;font-weight:700;':isSelf?'color:#1a8a5a;font-weight:700;':'')+'">'+rankLabel+'</td>'
-      + '<td class="'+nameCls+'" style="'+(isTRV?'color:#2255cc;font-weight:600;':isSelf?'color:#1a8a5a;font-weight:600;':'')+'">'+row.name+(isTRV?' <span style="font-size:9px;background:#2255cc;color:white;padding:1px 4px;border-radius:3px;">TRV</span>':'')+'</td>'
+      + '<td class="'+nameCls+'" style="'+(isTRV?'color:#2255cc;font-weight:600;':isSelf?'color:#1a8a5a;font-weight:600;':'')+'">'+row.name+(isTRV?' <span style="font-size:9px;background:#2255cc;color:white;padding:1px 4px;border-radius:3px;">'+refSupplier.label+'</span>':'')+'</td>'
       + '<td class="offer-cell">'+(row.offer||'—')+'</td>';
 
-    if(isSelf || isTRV){
-      // Valeurs absolues pour Alterna et EDF TRV
+    // % vs la référence réglementée (TRV/PRVG) — affiché pour TOUS les acteurs, Alterna incluse
+    // (sa propre position par rapport au tarif réglementé) et la ligne TRV/PRVG elle-même (0,0%).
+    var pct = (trvAnnuel && row.annuel!=null) ? ((row.annuel - trvAnnuel)/trvAnnuel*100) : null;
+    var pctCell = '<td class="num">'+(pct!=null ? '<span style="font-size:11px;opacity:0.85;">'+(pct>=0?'+':'')+pct.toFixed(1).replace('.',',')+'%</span>' : '—')+'</td>';
+
+    if(isSelf){
+      // Valeurs absolues uniquement pour Alterna (la référence du classement)
       function fmtV(v){if(v===null||v===undefined||isNaN(v)||v==='')return '—';return +v;}
       cells += '<td class="num">'+fmtV(row.abo)+'</td>';
       if(isHC){
@@ -2880,11 +3371,10 @@ function rankTable(data, cols) {
       } else {
         cells += '<td class="num">'+fmtV(row.kwh)+'</td>';
       }
+      cells += pctCell;
       cells += '<td class="num">'+(row.annuel!=null?Math.round(row.annuel)+' €':'—')+'</td>';
     } else {
-      // Écarts + % vs TRV pour concurrents
-      var pct = (trvAnnuel && row.annuel!=null) ? ((row.annuel - trvAnnuel)/trvAnnuel*100) : null;
-      var pctStr = pct!=null ? ' <span style="font-size:10px;opacity:0.8;">('+( pct>=0?'+':'')+pct.toFixed(1)+'%)</span>' : '';
+      // Écarts vs Alterna pour tous les autres acteurs, y compris la ligne TRV/PRVG elle-même.
       cells += '<td class="num">'+fmtE(row.ecart_abo,2)+'</td>';
       if(isHC){
         cells += '<td class="num">'+fmtE(row.ecart_hp,4)+'</td>';
@@ -2892,7 +3382,8 @@ function rankTable(data, cols) {
       } else {
         cells += '<td class="num">'+fmtE(row.ecart_kwh,4)+'</td>';
       }
-      cells += '<td class="num">'+fmtE(row.ecart,0)+pctStr+'</td>';
+      cells += pctCell;
+      cells += '<td class="num">'+fmtE(row.ecart,0)+'</td>';
     }
     return '<tr style="'+rowStyle+'">'+cells+'</tr>';
   }).join('');
@@ -2936,23 +3427,24 @@ function renderResultsHTML() {
   } else {
     var r=computeGasRankings();
     var C_GAS=['#','Fournisseur','Offre','Abo (€/mois)','kWh (€/kWh)','Coût annuel €'];
+    var GAS_REF = {name:'Engie', label:'PRVG'};
     var gasStyle='background:var(--orange-light);border-radius:10px;padding:16px;margin-bottom:20px;border:1px solid #F0C090;';
     return header
       +'<div style="'+gasStyle+'">'
       +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B0 Zone 1 — Cuisine &amp; Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an</div>'
-      +rankTable(r.b0z1,C_GAS)
+      +rankTable(r.b0z1,C_GAS,GAS_REF)
       +'</div>'
       +'<div style="'+gasStyle+'">'
       +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B0 Zone 2 — Cuisine &amp; Eau chaude — conso moy. '+CONSOS.gas_b0+' kWh/an</div>'
-      +rankTable(r.b0z2,C_GAS)
+      +rankTable(r.b0z2,C_GAS,GAS_REF)
       +'</div>'
       +'<div style="'+gasStyle+'">'
       +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B1 Zone 1 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an</div>'
-      +rankTable(r.b1z1,C_GAS)
+      +rankTable(r.b1z1,C_GAS,GAS_REF)
       +'</div>'
       +'<div style="'+gasStyle+'">'
       +'<div class="segment-label" style="color:var(--orange);border-color:#F0C090;">🔥 B1 Zone 2 — Chauffage individuel — conso moy. '+CONSOS.gas_b1+' kWh/an</div>'
-      +rankTable(r.b1z2,C_GAS)
+      +rankTable(r.b1z2,C_GAS,GAS_REF)
       +'</div>';
   }
 }
@@ -3335,6 +3827,25 @@ function promptModalOk() {
 function promptModalCancel() {
   document.getElementById('promptModal').style.display = 'none';
   if(_promptModalCallback) { _promptModalCallback(null); _promptModalCallback=null; }
+}
+
+// ── Custom confirm modal (replaces blocked window.confirm) ────────
+var _confirmModalCallback = null;
+function showConfirmModal(message, callback) {
+  var modal = document.getElementById('confirmModal');
+  var msgEl = document.getElementById('confirmModalMsg');
+  if(!modal) { callback(window.confirm(message)); return; }
+  msgEl.textContent = message;
+  modal.style.display = 'flex';
+  _confirmModalCallback = callback;
+}
+function confirmModalOk() {
+  document.getElementById('confirmModal').style.display = 'none';
+  if(_confirmModalCallback) { _confirmModalCallback(true); _confirmModalCallback=null; }
+}
+function confirmModalCancel() {
+  document.getElementById('confirmModal').style.display = 'none';
+  if(_confirmModalCallback) { _confirmModalCallback(false); _confirmModalCallback=null; }
 }
 
 </script>
