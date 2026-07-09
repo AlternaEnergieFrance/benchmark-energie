@@ -3414,11 +3414,11 @@ function renderResultsHTML() {
     +'</div>'
     +'<div style="display:flex;gap:6px;">'+saveBtn+pdfBtn+csvBtn+'</div>'
     +'</div>';
+  header += jsonImportInput + ' ' + jsonExportBtn + ' ' + jsonImportBtn;
   if(isElec){
     var r=computeElecRankings();
     var C_BASE=['#','Fournisseur','Offre','Abo (€/mois)','kWh (€/kWh)','Coût annuel €'];
     var C_HC  =['#','Fournisseur','Offre','Abo (€/mois)','HP (€/kWh)','HC (€/kWh)','Coût annuel €'];
-    header += jsonImportInput + ' ' + jsonExportBtn + ' ' + jsonImportBtn;
   return header
       +'<div class="segment-label">6 kVA Option Base — conso moy. '+CONSOS.elec_6_base+' kWh/an</div>'+rankTable(r.e6b,C_BASE)
       +'<div class="segment-label">9 kVA Option Base — conso moy. '+CONSOS.elec_9_base+' kWh/an</div>'+rankTable(r.e9b,C_BASE)
@@ -3474,7 +3474,10 @@ function exportJSON(){
   var data = {
     energy: currentEnergy,
     suppliers: suppliers,
+    suppliersGaz: suppliersGaz,
     ref: REF,
+    history: history,
+    monthLabels: monthLabels || {},
     month: new Date().toISOString().slice(0,7)
   };
   var json = JSON.stringify(data, null, 2);
@@ -3483,7 +3486,7 @@ function exportJSON(){
   a.href = URL.createObjectURL(b);
   a.download = 'benchmark_energie_' + data.month + '.json';
   a.click();
-  showToast('✓ Export JSON téléchargé','success');
+  showToast('✓ Export JSON téléchargé (élec + gaz + historique)','success');
 }
 
 function importJSON(event){
@@ -3493,13 +3496,21 @@ function importJSON(event){
     try {
       var data = JSON.parse(e.target.result);
       if(data.suppliers) suppliers = data.suppliers;
+      if(data.suppliersGaz) suppliersGaz = data.suppliersGaz;
       if(data.ref) { REF.elec = data.ref.elec; REF.gas = data.ref.gas; }
+      if(data.history) history = data.history;
+      if(data.monthLabels) window.monthLabels = data.monthLabels;
       if(data.energy) currentEnergy = data.energy;
       currentSupplier = null;
+      currentMonthKey = null;
+      try {
+        localStorage.setItem('benchmark_history', JSON.stringify(history));
+        localStorage.setItem('benchmark_month_labels', JSON.stringify(monthLabels||{}));
+      } catch(err){}
       renderSidebar();
       renderContent();
       postRenderRef();
-      showToast('✓ Import JSON réussi — ' + (data.month||'') ,'success');
+      showToast('✓ Import JSON réussi (élec + gaz + historique) — ' + (data.month||'') ,'success');
     } catch(err){
       showToast('Erreur import JSON: '+err.message,'error');
     }
